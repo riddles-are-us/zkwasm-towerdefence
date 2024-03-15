@@ -38,6 +38,7 @@ pub fn init_state() {
     let tower_left = Tower::new(5, 1, 4, 4, RectDirection::Left);
     let tower_right = Tower::new(5, 1, 4, 4, RectDirection::Right);
     let spawner = Spawner::new(4, 4);
+    let spawner2 = Spawner::new(4, 4);
     let collector = Collector::new(5);
     let global = unsafe {&mut GLOBAL};
     for _ in 0..96 {
@@ -50,6 +51,14 @@ pub fn init_state() {
     global.map.set_feature(cor_to_index(0,1), Some(RectDirection::Right));
     global.map.set_feature(cor_to_index(1,1), Some(RectDirection::Right));
     global.map.set_feature(cor_to_index(2,1), Some(RectDirection::Bottom));
+
+
+    global.map.set_feature(cor_to_index(4,0), Some(RectDirection::Bottom));
+    global.map.set_feature(cor_to_index(4,1), Some(RectDirection::Left));
+    global.map.set_feature(cor_to_index(3,1), Some(RectDirection::Left));
+
+
+
     global.map.set_feature(cor_to_index(2,2), Some(RectDirection::Bottom));
     global.map.set_feature(cor_to_index(2,3), Some(RectDirection::Right));
     global.map.set_feature(cor_to_index(3,3), Some(RectDirection::Right));
@@ -81,6 +90,7 @@ pub fn init_state() {
 
     global.map.spawn_at(Object::Monster(monster), RectCoordinate::new(0,0));
     global.map.spawn_at(Object::Spawner(spawner), RectCoordinate::new(0,0));
+    global.map.spawn_at(Object::Spawner(spawner2), RectCoordinate::new(4,0));
     global.map.spawn_at(Object::Tower(tower.clone()), RectCoordinate::new(3,4));
     global.map.spawn_at(Object::Tower(tower_left), RectCoordinate::new(8,5));
     global.map.spawn_at(Object::Tower(tower_right.clone()), RectCoordinate::new(9,6));
