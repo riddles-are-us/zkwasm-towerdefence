@@ -17,6 +17,7 @@ impl<C: Coordinate, O: Clone> PositionedObject<C, O> {
     }
 }
 
+#[derive (Clone, Serialize)]
 pub struct Map<C:Coordinate, O: Clone> {
     pub width: usize,
     pub height: usize,
@@ -45,7 +46,7 @@ impl<C:Coordinate, O: Clone> Map<C, O> {
         self.objects.swap_remove(index)
     }
     pub fn coordinate_of_tile_index(&self, index: usize) -> C {
-        C::new((index % self.width) as i64, (index / self.height) as i64)
+        C::new((index % self.width) as i64, (index / self.width) as i64)
     }
 
     pub fn index_of_tile_coordinate(&self, cor: &C) -> usize {

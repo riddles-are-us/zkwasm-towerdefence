@@ -1,6 +1,6 @@
 use serde::Serialize;
-pub trait Coordinate: Sized + PartialEq {
-    type Direction: Clone;
+pub trait Coordinate: Sized + PartialEq + Serialize{
+    type Direction: Clone + Serialize;
     fn adjacents(&self) -> Vec<Self>;
     fn directions() -> Vec<Self::Direction>;
     fn adjacent(&self, direction: Self::Direction) -> Self;
@@ -207,7 +207,7 @@ impl Coordinate for RectCoordinate {
 }
 
 
-#[derive (Serialize)]
+#[derive (Clone, Serialize)]
 pub struct Tile<C: Coordinate, F: Clone> {
     cor: C,
     pub feature: F,

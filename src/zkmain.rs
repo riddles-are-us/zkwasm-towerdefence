@@ -5,8 +5,9 @@ use sha2::{Sha256, Digest};
 use primitive_types::U256;
 use super::game::step;
 use wasm_bindgen::prelude::*;
+use zkwasm_rust_sdk::require;
+use crate::game::state::GLOBAL;
 //use zkwasm_rust_sdk::wasm_output;
-//use zkwasm_rust_sdk::wasm_dbg;
 //use zkwasm_rust_sdk::require;
 
 #[wasm_bindgen]
@@ -19,6 +20,10 @@ pub fn zkmain() -> i64 {
         hasher.update(command.to_le_bytes());
         step(command);
     }
+
+    let terminates = unsafe { GLOBAL.terminates };
+
+    unsafe {require(terminates == 0)};
 
     let msghash = hasher.finalize();
 

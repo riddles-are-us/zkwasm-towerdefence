@@ -122,7 +122,7 @@ impl Collector {
 
 #[derive (Clone, Serialize)]
 pub struct Dropped {
-    delta: u64,
+    pub delta: u64,
 }
 
 impl Dropped {
