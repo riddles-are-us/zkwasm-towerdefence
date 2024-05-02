@@ -7,6 +7,7 @@ use self::state::GLOBAL;
 
 pub mod object;
 pub mod state;
+pub mod event;
 
 // This is a standalone game state manipulate module that connets with UI
 // controllers and model handlers

@@ -14,6 +14,7 @@ use super::object::Dropped;
 use super::object::Object;
 use super::object::Spawner;
 use super::object::Tower;
+use super::event::Event;
 
 #[derive (Clone, Serialize)]
 pub struct InventoryObject {
@@ -41,7 +42,7 @@ pub struct State {
     pub terminates: u64,
     pub hp: u64,
     pub map: Map<RectCoordinate, Object<RectDirection>>,
-
+    pub events: Vec<Event>,
 }
 
 pub static mut GLOBAL: State = State {
@@ -55,7 +56,8 @@ pub static mut GLOBAL: State = State {
         height: 8,
         tiles: vec![],
         objects: vec![]
-    }
+    },
+    events: vec![]
 };
 
 fn cor_to_index(x:usize, y:usize) -> usize {
@@ -154,6 +156,54 @@ pub fn handle_run() {
     let mut spawn = vec![];
     let mut tower_range:Vec<(Tower<RectDirection>, RectCoordinate, usize, usize, usize)> = vec![];
 
+
+    let mut reward = 0;
+    let mut damage = 0;
+    let mut terminates = global.terminates;
+    let mut monsters = global.monsters;
+
+
+    for (index, obj) in objs.iter_mut().enumerate() {
+        if let Object::Monster(m) = &mut obj.object {
+            if collector.contains(&obj.position) {
+                terminates -= 1;
+                termination.push(index);
+                damage += m.hp;
+            } else {
+                let index = map.index_of_tile_coordinate(&obj.position);
+                let feature = map.get_feature(index);
+                if let Some(f) = feature {
+                    unsafe {wasm_dbg(f.clone() as u64)};
+                    obj.position = obj.position.adjacent(f)
+                }
+            }
+        }
+        else if let Object::Dropped(dropped) = &mut obj.object {
+            if collector.contains(&obj.position) {
+                reward += dropped.delta;
+                terminates -= 1;
+                termination.push(index);
+            } else {
+                let index = map.index_of_tile_coordinate(&obj.position);
+                let feature = map.get_feature(index);
+                if let Some(f) = feature {
+                    unsafe {wasm_dbg(f.clone() as u64)};
+                    obj.position = obj.position.adjacent(f)
+                }
+            }
+        }
+
+        else if let Object::Spawner(spawner) = &mut obj.object {
+            if spawner.count == 0 && monsters > 0{
+                monsters = monsters - 1;
+                spawn.push(PositionedObject::new(Object::Monster(Monster::new(10, 1, 1)), obj.position.clone()));
+                spawner.count = spawner.rate
+            } else {
+                spawner.count -= 1
+            }
+        }
+    }
+
     for (index, obj) in objs.iter_mut().enumerate() {
         if let Object::Tower(tower) = &mut obj.object {
             if tower.count == 0 {
@@ -176,6 +226,9 @@ pub fn handle_run() {
         }
     }
 
+
+    let mut events = vec![];
+
     for t in tower_range.iter_mut() {
         if t.4 != usize::max_value() {
             if let Object::Monster(m) = &mut objs[t.4].object {
@@ -188,6 +241,7 @@ pub fn handle_run() {
                     termination.push(t.4);
                     spawn.push(PositionedObject::new(Object::Dropped(Dropped::new(10)), objs[t.4].position.clone()));
                 }
+                events.push(Event::Attack(t.1.repr(), objs[t.4].position.repr(), 0))
             }
             if let Object::Tower(tower) = &mut objs[t.3].object {
                 tower.count = tower.cooldown;
@@ -195,50 +249,8 @@ pub fn handle_run() {
         }
     }
 
-    let mut reward = 0;
-    let mut damage = 0;
-    let mut terminates = global.terminates;
-    let mut monsters = global.monsters;
 
-    for (index, obj) in objs.iter_mut().enumerate() {
-        if let Object::Monster(m) = &mut obj.object {
-            if collector.contains(&obj.position) {
-                terminates -= 1;
-                termination.push(index);
-                damage += m.hp;
-            } else {
-                let index = map.index_of_tile_coordinate(&obj.position);
-                let feature = map.get_feature(index);
-                if let Some(f) = feature {
-                    unsafe {wasm_dbg(f.clone() as u64)};
-                    obj.position = obj.position.adjacent(f)
-                }
-            }
-        }
-        else if let Object::Dropped(dropped) = &mut obj.object {
-            if collector.contains(&obj.position) {
-                reward += dropped.delta;
-                termination.push(index);
-            } else {
-                let index = map.index_of_tile_coordinate(&obj.position);
-                let feature = map.get_feature(index);
-                if let Some(f) = feature {
-                    unsafe {wasm_dbg(f.clone() as u64)};
-                    obj.position = obj.position.adjacent(f)
-                }
-            }
-        }
 
-        else if let Object::Spawner(spawner) = &mut obj.object {
-            if spawner.count == 0 && monsters > 0{
-                monsters = monsters - 1;
-                spawn.push(PositionedObject::new(Object::Monster(Monster::new(10, 1, 1)), obj.position.clone()));
-                spawner.count = spawner.rate
-            } else {
-                spawner.count -= 1
-            }
-        }
-    }
     termination.reverse();
     for idx in termination {
         global.map.remove(idx);
@@ -255,4 +267,6 @@ pub fn handle_run() {
     if reward > damage {
         global.treasure += reward - damage;
     }
+
+    global.events = events;
 }
