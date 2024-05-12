@@ -1,12 +1,12 @@
+use super::game::step;
+use crate::game::state::GLOBAL;
+use primitive_types::U256;
+use sha2::{Digest, Sha256};
+use wasm_bindgen::prelude::*;
 use zkwasm_rust_sdk::jubjub::BabyJubjubPoint;
 use zkwasm_rust_sdk::jubjub::JubjubSignature;
-use zkwasm_rust_sdk::wasm_input;
-use sha2::{Sha256, Digest};
-use primitive_types::U256;
-use super::game::step;
-use wasm_bindgen::prelude::*;
 use zkwasm_rust_sdk::require;
-use crate::game::state::GLOBAL;
+use zkwasm_rust_sdk::wasm_input;
 //use zkwasm_rust_sdk::wasm_output;
 //use zkwasm_rust_sdk::require;
 
@@ -14,16 +14,16 @@ use crate::game::state::GLOBAL;
 pub fn zkmain() -> i64 {
     let mut hasher = Sha256::new();
 
-    let commands_len = unsafe {wasm_input(0)};
+    let commands_len = unsafe { wasm_input(0) };
     for _ in 0..commands_len {
-        let command = unsafe {wasm_input(0)};
+        let command = unsafe { wasm_input(0) };
         hasher.update(command.to_le_bytes());
         step(command);
     }
 
     let terminates = unsafe { GLOBAL.terminates };
 
-    unsafe {require(terminates == 0)};
+    unsafe { require(terminates == 0) };
 
     let msghash = hasher.finalize();
 
@@ -40,44 +40,23 @@ pub fn zkmain() -> i64 {
 
     zkwasm_rust_sdk::dbg!("msg {:?}\n", msghash);
 
-    let pk = unsafe {BabyJubjubPoint {
-        x: U256([
-                wasm_input(0),
-                wasm_input(0),
-                wasm_input(0),
-                wasm_input(0),
-        ]),
-        y: U256([
-                wasm_input(0),
-                wasm_input(0),
-                wasm_input(0),
-                wasm_input(0),
-        ]),
-    }};
+    let pk = unsafe {
+        BabyJubjubPoint {
+            x: U256([wasm_input(0), wasm_input(0), wasm_input(0), wasm_input(0)]),
+            y: U256([wasm_input(0), wasm_input(0), wasm_input(0), wasm_input(0)]),
+        }
+    };
     zkwasm_rust_sdk::dbg!("process sig\n");
 
-    let sig = unsafe {JubjubSignature {
-        sig_r: BabyJubjubPoint {
-            x: U256([
-                    wasm_input(0),
-                    wasm_input(0),
-                    wasm_input(0),
-                    wasm_input(0),
-            ]),
-            y: U256([
-                    wasm_input(0),
-                    wasm_input(0),
-                    wasm_input(0),
-                    wasm_input(0),
-            ]),
-        },
-        sig_s: [
-            wasm_input(0),
-            wasm_input(0),
-            wasm_input(0),
-            wasm_input(0),
-        ]
-    }};
+    let sig = unsafe {
+        JubjubSignature {
+            sig_r: BabyJubjubPoint {
+                x: U256([wasm_input(0), wasm_input(0), wasm_input(0), wasm_input(0)]),
+                y: U256([wasm_input(0), wasm_input(0), wasm_input(0), wasm_input(0)]),
+            },
+            sig_s: [wasm_input(0), wasm_input(0), wasm_input(0), wasm_input(0)],
+        }
+    };
     zkwasm_rust_sdk::dbg!("start verifying ...\n");
 
     let msghash_u64 = [

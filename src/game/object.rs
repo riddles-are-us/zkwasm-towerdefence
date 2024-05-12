@@ -1,8 +1,11 @@
 use serde::Serialize;
 
-use crate::tile::coordinate::{Coordinate, RectCoordinate, RectDirection};
+use crate::{
+    config::upgrade_tower,
+    tile::coordinate::{Coordinate, RectCoordinate, RectDirection},
+};
 
-#[derive (Clone, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct Monster {
     pub hp: u64,
     pub range: u64,
@@ -11,31 +14,29 @@ pub struct Monster {
 
 impl Monster {
     pub fn new(hp: u64, range: u64, power: u64) -> Self {
-        Monster {
-            hp,
-            range,
-            power
-        }
+        Monster { hp, range, power }
     }
 }
 
-#[derive (Clone, Serialize)]
-pub struct Tower<Direction: Clone + Serialize>{
-    range: u64,
-    power: u64,
+#[derive(Clone, Serialize)]
+pub struct Tower<Direction: Clone + Serialize> {
+    pub lvl: u64,
+    pub range: u64,
+    pub power: u64,
     pub cooldown: u64,
     pub count: u64,
     direction: Direction,
 }
 
 impl Tower<RectDirection> {
-    pub fn new(range: u64, power: u64, cooldown: u64, count: u64,  direction: RectDirection) -> Self {
+    pub fn new(lvl: u64, range: u64, power: u64, cooldown: u64, direction: RectDirection) -> Self {
         Tower {
+            lvl,
             range,
             power,
             cooldown,
-            count,
-            direction
+            count: cooldown, // initial count
+            direction,
         }
     }
     pub fn range(&self, src: &RectCoordinate, target: &RectCoordinate) -> usize {
@@ -52,7 +53,7 @@ impl Tower<RectDirection> {
                 } else {
                     usize::max_value()
                 }
-            },
+            }
             RectDirection::Right => {
                 if src.1 == target.1 {
                     if target.0 > src.0 {
@@ -63,7 +64,7 @@ impl Tower<RectDirection> {
                 } else {
                     usize::max_value()
                 }
-            },
+            }
             RectDirection::Top => {
                 if src.0 == target.0 {
                     if target.1 < src.1 {
@@ -74,7 +75,7 @@ impl Tower<RectDirection> {
                 } else {
                     usize::max_value()
                 }
-            },
+            }
             RectDirection::Bottom => {
                 if src.0 == target.0 {
                     if target.1 > src.1 {
@@ -85,57 +86,46 @@ impl Tower<RectDirection> {
                 } else {
                     usize::max_value()
                 }
-
-            },
-
+            }
         }
     }
 }
 
-#[derive (Clone, Serialize)]
-pub struct Spawner{
+#[derive(Clone, Serialize)]
+pub struct Spawner {
     pub rate: u64,
-    pub count: u64
+    pub count: u64,
 }
 
 impl Spawner {
     pub fn new(rate: u64, count: u64) -> Self {
-        Spawner {
-            rate,
-            count
-        }
+        Spawner { rate, count }
     }
 }
 
-#[derive (Clone, Serialize)]
-pub struct Collector{
+#[derive(Clone, Serialize)]
+pub struct Collector {
     buf: u64,
 }
 
 impl Collector {
     pub fn new(buf: u64) -> Self {
-        Collector {
-           buf
-        }
+        Collector { buf }
     }
 }
 
-#[derive (Clone, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct Dropped {
     pub delta: u64,
 }
 
 impl Dropped {
     pub fn new(delta: u64) -> Self {
-        Dropped {
-           delta
-        }
+        Dropped { delta }
     }
 }
 
-
-
-#[derive (Clone, Serialize)]
+#[derive(Clone, Serialize)]
 pub enum Object<Direction: Clone + Serialize> {
     Monster(Monster),
     Tower(Tower<Direction>),
@@ -144,7 +134,13 @@ pub enum Object<Direction: Clone + Serialize> {
     Collector(Collector),
 }
 
-
-
-
-
+impl Object<RectDirection> {
+    pub fn upgrade(&mut self) {
+        match self {
+            Object::Tower(t) => upgrade_tower(t),
+            _ => {
+                todo!()
+            }
+        }
+    }
+}

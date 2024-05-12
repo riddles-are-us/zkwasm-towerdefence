@@ -1,5 +1,5 @@
 use serde::Serialize;
-pub trait Coordinate: Sized + PartialEq + Serialize{
+pub trait Coordinate: Sized + PartialEq + Serialize {
     type Direction: Clone + Serialize;
     fn adjacents(&self) -> Vec<Self>;
     fn directions() -> Vec<Self::Direction>;
@@ -9,7 +9,7 @@ pub trait Coordinate: Sized + PartialEq + Serialize{
     fn new(x: i64, y: i64) -> Self;
 }
 
-#[derive (Clone, Serialize)]
+#[derive(Clone, Serialize)]
 pub enum HexDirection {
     TopLeft,
     TopRight,
@@ -19,7 +19,7 @@ pub enum HexDirection {
     Left,
 }
 
-#[derive (Clone, Serialize, PartialEq)]
+#[derive(Clone, Serialize, PartialEq)]
 pub struct HexCoordinate {
     x: i64,
     y: i64,
@@ -29,10 +29,7 @@ impl Coordinate for HexCoordinate {
     type Direction = HexDirection;
 
     fn new(x: i64, y: i64) -> Self {
-        HexCoordinate {
-            x,
-            y,
-        }
+        HexCoordinate { x, y }
     }
     fn repr(&self) -> (i64, i64) {
         (self.x, self.y)
@@ -51,7 +48,7 @@ impl Coordinate for HexCoordinate {
             diff_x as u64
         } else {
             let extra = diff_y - diff_x;
-            let extra_move = (extra % 2) + (extra/2);
+            let extra_move = (extra % 2) + (extra / 2);
             diff_x + extra_move
         }
     }
@@ -78,53 +75,28 @@ impl Coordinate for HexCoordinate {
     fn adjacent(&self, direction: Self::Direction) -> Self {
         use HexDirection::*;
         let y = match direction {
-            TopLeft => {
-                self.y - 1
-            },
-            TopRight => {
-                self.y - 1
-            },
-            Left => {
-                self.y
-            },
-            Right => {
-                self.y
-            },
-            BottomRight => {
-                self.y + 1
-            },
-            BottomLeft => {
-                self.y + 1
-            },
+            TopLeft => self.y - 1,
+            TopRight => self.y - 1,
+            Left => self.y,
+            Right => self.y,
+            BottomRight => self.y + 1,
+            BottomLeft => self.y + 1,
         };
-        let left_start = y % 2;  // for y=0,1,2, ... start with 0 else start with 1
+        let left_start = y % 2; // for y=0,1,2, ... start with 0 else start with 1
         let x = match direction {
-            TopLeft => {
-                self.x - left_start
-            },
-            TopRight => {
-                self.x + 1 - left_start
-            },
-            Left => {
-                self.x - 1
-            },
-            Right => {
-                self.x + 1
-            },
-            BottomRight => {
-                self.x + 1 - left_start
-            },
-            BottomLeft => {
-                self.x - left_start
-            },
+            TopLeft => self.x - left_start,
+            TopRight => self.x + 1 - left_start,
+            Left => self.x - 1,
+            Right => self.x + 1,
+            BottomRight => self.x + 1 - left_start,
+            BottomLeft => self.x - left_start,
         };
 
         Self::new(x, y)
     }
 }
 
-
-#[derive (Clone, Serialize)]
+#[derive(Clone, Serialize)]
 pub enum RectDirection {
     Top,
     Right,
@@ -132,7 +104,7 @@ pub enum RectDirection {
     Left,
 }
 
-#[derive (Clone, Serialize, PartialEq)]
+#[derive(Clone, Serialize, PartialEq)]
 pub struct RectCoordinate {
     x: i64,
     y: i64,
@@ -142,10 +114,7 @@ impl Coordinate for RectCoordinate {
     type Direction = RectDirection;
 
     fn new(x: i64, y: i64) -> Self {
-        RectCoordinate {
-            x,
-            y,
-        }
+        RectCoordinate { x, y }
     }
     fn repr(&self) -> (i64, i64) {
         (self.x, self.y)
@@ -174,40 +143,23 @@ impl Coordinate for RectCoordinate {
     fn adjacent(&self, direction: Self::Direction) -> Self {
         use RectDirection::*;
         let y = match direction {
-            Top=> {
-                self.y - 1
-            },
-            Right => {
-                self.y
-            },
-            Left => {
-                self.y
-            },
-            Bottom => {
-                self.y + 1
-            },
+            Top => self.y - 1,
+            Right => self.y,
+            Left => self.y,
+            Bottom => self.y + 1,
         };
         let x = match direction {
-            Top => {
-                self.x
-            },
-            Left => {
-                self.x - 1
-            },
-            Right => {
-                self.x + 1
-            },
-            Bottom=> {
-                self.x
-            },
+            Top => self.x,
+            Left => self.x - 1,
+            Right => self.x + 1,
+            Bottom => self.x,
         };
 
         Self::new(x, y)
     }
 }
 
-
-#[derive (Clone, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct Tile<C: Coordinate, F: Clone> {
     cor: C,
     pub feature: F,
@@ -215,30 +167,25 @@ pub struct Tile<C: Coordinate, F: Clone> {
 
 impl<C: Coordinate, F: Clone> Tile<C, F> {
     pub fn new(c: C, f: F) -> Self {
-        Tile {
-            cor: c,
-            feature: f
-        }
+        Tile { cor: c, feature: f }
     }
     pub fn set_feature(&mut self, f: F) {
         self.feature = f
     }
 }
 
-
-
 #[cfg(test)]
 mod tests {
-    use super::HexCoordinate;
     use super::Coordinate;
+    use super::HexCoordinate;
 
     #[test]
     fn test_distance() {
-        let p1 = HexCoordinate::new(0,0);
-        let p2 = HexCoordinate::new(1,2);
-        let p3 = HexCoordinate::new(1,3);
-        let p4 = HexCoordinate::new(0,3);
-        let p5 = HexCoordinate::new(2,3);
+        let p1 = HexCoordinate::new(0, 0);
+        let p2 = HexCoordinate::new(1, 2);
+        let p3 = HexCoordinate::new(1, 3);
+        let p4 = HexCoordinate::new(0, 3);
+        let p5 = HexCoordinate::new(2, 3);
         let dis12 = HexCoordinate::distance(&p1, &p2);
         let dis13 = HexCoordinate::distance(&p1, &p3);
         let dis14 = HexCoordinate::distance(&p1, &p4);
@@ -249,5 +196,3 @@ mod tests {
         assert_eq!(dis15, 5);
     }
 }
-
-

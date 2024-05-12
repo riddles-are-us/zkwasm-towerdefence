@@ -1,9 +1,9 @@
-use serde::Serialize;
 use super::coordinate::Coordinate;
 use super::coordinate::Tile;
+use serde::Serialize;
 
-#[derive (Clone, Serialize)]
-pub struct PositionedObject<C:Coordinate, Object: Clone> {
+#[derive(Clone, Serialize)]
+pub struct PositionedObject<C: Coordinate, Object: Clone> {
     pub position: C,
     pub object: Object,
 }
@@ -12,32 +12,36 @@ impl<C: Coordinate, O: Clone> PositionedObject<C, O> {
     pub fn new(obj: O, pos: C) -> Self {
         PositionedObject {
             object: obj,
-            position: pos
+            position: pos,
         }
     }
 }
 
-#[derive (Clone, Serialize)]
-pub struct Map<C:Coordinate, O: Clone> {
+#[derive(Clone, Serialize)]
+pub struct Map<C: Coordinate, O: Clone> {
     pub width: usize,
     pub height: usize,
     pub tiles: Vec<Tile<C, Option<C::Direction>>>,
     pub objects: Vec<PositionedObject<C, O>>,
 }
 
-impl<C:Coordinate, O: Clone> Map<C, O> {
-    pub fn new(width: usize, height: usize, tiles: Vec<Tile<C, Option<C::Direction>>>, objects: Vec<PositionedObject<C, O>>) -> Self {
+impl<C: Coordinate, O: Clone> Map<C, O> {
+    pub fn new(
+        width: usize,
+        height: usize,
+        tiles: Vec<Tile<C, Option<C::Direction>>>,
+        objects: Vec<PositionedObject<C, O>>,
+    ) -> Self {
         Map {
             width,
             height,
             tiles,
             objects,
         }
-
     }
     pub fn spawn_at(&mut self, object: O, position: C) -> &PositionedObject<C, O> {
         self.objects.push(PositionedObject::new(object, position));
-        self.objects.get(self.objects.len()-1).unwrap()
+        self.objects.get(self.objects.len() - 1).unwrap()
     }
     pub fn spawn(&mut self, p: PositionedObject<C, O>) {
         self.objects.push(p)
@@ -62,22 +66,20 @@ impl<C:Coordinate, O: Clone> Map<C, O> {
         self.tiles.get(index).unwrap().feature.clone()
     }
 
-
     pub fn get_neighbours(
         &mut self,
         pos: &PositionedObject<C, O>,
         distance: u64,
-        filter: impl Fn (&PositionedObject<C, O>) -> bool
-        )
-        -> Vec<&PositionedObject<C, O>> {
-            let mut r = vec![];
-            for obj in self.objects.iter() {
-                if C::distance(&obj.position, &pos.position) < distance {
-                    if filter(obj) {
-                        r.push(obj)
-                    }
+        filter: impl Fn(&PositionedObject<C, O>) -> bool,
+    ) -> Vec<&PositionedObject<C, O>> {
+        let mut r = vec![];
+        for obj in self.objects.iter() {
+            if C::distance(&obj.position, &pos.position) < distance {
+                if filter(obj) {
+                    r.push(obj)
                 }
             }
-            r
+        }
+        r
     }
 }

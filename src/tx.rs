@@ -25,11 +25,17 @@ pub fn read_tx_info<'a, T>(data: &'a [u64; 10]) -> &'a T {
     unsafe { std::mem::transmute(data) }
 }
 
-const DEPOSIT:u8 = 0x0;
-const WITHDRAW:u8 = 0x1;
+const DEPOSIT: u8 = 0x0;
+const WITHDRAW: u8 = 0x1;
 
 impl DepositInfo {
-    pub fn new(nounce: u64, account_index: u32, object_index: u32, amount: [u64;4], sender: [u64; 4]) -> Self {
+    pub fn new(
+        nounce: u64,
+        account_index: u32,
+        object_index: u32,
+        amount: [u64; 4],
+        sender: [u64; 4],
+    ) -> Self {
         DepositInfo {
             opinfo: (DEPOSIT as u64) + (nounce << 8),
             account_index,
@@ -44,7 +50,13 @@ impl DepositInfo {
 }
 
 impl WithdrawInfo {
-    pub fn new(nounce: u64, account_index: u32, object_index: u32, amount: [u64;4], sender: [u64; 4]) -> Self {
+    pub fn new(
+        nounce: u64,
+        account_index: u32,
+        object_index: u32,
+        amount: [u64; 4],
+        sender: [u64; 4],
+    ) -> Self {
         WithdrawInfo {
             opinfo: (WITHDRAW as u64) + (nounce << 8),
             account_index,
