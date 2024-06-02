@@ -55,6 +55,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "derive_builder"
+version = "0.1.0"
+source = "git+https://github.com/DelphinusLab/zkWasm-rust.git#3dc33e15c9e2b6ee502d538a5e715f8ac88083f7"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "digest"
 version = "0.10.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -94,6 +104,12 @@ name = "itoa"
 version = "1.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1a46d1a171d865aa5f83f92695765caa047a9b4cbae2cbf37dbd613a793fd4c"
+
+[[package]]
+name = "lazy_static"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
@@ -164,7 +180,7 @@ checksum = "43576ca501357b9b071ac53cdc7da8ef0cbd9493d8df094cd821777ea6e894d3"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -197,6 +213,17 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "syn"
+version = "1.0.109"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72b64191b275b66ffe2469e8af2c1cfe3bafa67b529ead792a6d0160888b4237"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-ident",
+]
+
+[[package]]
+name = "syn"
 version = "2.0.39"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23e78b90f2fcf45d3e842032ce32e3f2d1545ba6636271dcbf24fa306d87be7a"
@@ -210,11 +237,13 @@ dependencies = [
 name = "tdgame"
 version = "0.1.0"
 dependencies = [
+ "lazy_static",
  "primitive-types",
  "serde",
  "serde_json",
  "sha2",
  "wasm-bindgen",
+ "zkwasm-rest-abi",
  "zkwasm-rust-sdk",
 ]
 
@@ -269,7 +298,7 @@ dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.39",
  "wasm-bindgen-shared",
 ]
 
@@ -291,7 +320,7 @@ checksum = "642f325be6301eb8107a83d12a8ac6c1e1c54345a7ef1a9261962dfefda09e66"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn",
+ "syn 2.0.39",
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]
@@ -303,10 +332,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4f186bd2dcf04330886ce82d6f33dd75a7bfcf69ecf5763b89fcde53b6ac9838"
 
 [[package]]
+name = "zkwasm-rest-abi"
+version = "0.1.0"
+source = "git+https://github.com/DelphinusLab/zkwasm-typescript-mini-server#8ad35dc27d422af38ea2996e8462702894a4c260"
+dependencies = [
+ "derive_builder",
+ "lazy_static",
+ "primitive-types",
+ "serde",
+ "serde_json",
+ "sha2",
+ "wasm-bindgen",
+ "zkwasm-rust-sdk",
+]
+
+[[package]]
 name = "zkwasm-rust-sdk"
 version = "0.1.0"
-source = "git+https://github.com/DelphinusLab/zkWasm-rust.git?branch=main#2356d47b0ee970877a7bca6443636ed671295913"
+source = "git+https://github.com/DelphinusLab/zkWasm-rust.git#3dc33e15c9e2b6ee502d538a5e715f8ac88083f7"
 dependencies = [
+ "derive_builder",
  "primitive-types",
  "wasm-bindgen",
 ]

@@ -1,8 +1,4 @@
-use self::state::init_state;
-use self::state::GLOBAL;
-use sha2::{Digest, Sha256};
-use wasm_bindgen::prelude::*;
-use zkwasm_rust_sdk::merkle::Merkle;
+use crate::config::init_state;
 use zkwasm_rust_sdk::wasm_dbg;
 
 pub mod event;
@@ -12,20 +8,17 @@ pub mod state;
 // This is a standalone game state manipulate module that connets with UI
 // controllers and model handlers
 
-static mut MERKLE: Merkle = Merkle { root: [0; 4] };
+const CMD_RUN: u64 = 0;
+const CMD_PLACE_TOWER: u64 = 1;
+const CMD_UPGRADE_INVENTORY: u64 = 2;
+//const CMD_SPAWN: u64 = 3;
 
-const CMD_RUN: u8 = 0;
-const CMD_PLACE_TOWER: u8 = 1;
-const CMD_UPGRADE_INVENTORY: u8 = 2;
-const CMD_SPAWN: u8 = 3;
+fn to_full_obj_id(id: u64) -> [u64; 4] {
+    [id, 0xffff, 0xff01, 0xff02]
+}
 
 /// Step function receives a encoded command and changes the global state accordingly
-#[wasm_bindgen]
-pub fn step(command: u64) {
-    let commands = command.to_le_bytes();
-    unsafe {
-        wasm_dbg(commands[0] as u64);
-    };
+pub fn step(commands: &[u64; 4]) {
     if commands[0] == CMD_RUN {
         state::handle_run();
     } else if commands[0] == CMD_PLACE_TOWER {
@@ -33,37 +26,48 @@ pub fn step(command: u64) {
         unsafe {
             wasm_dbg(objindex as u64);
         }
-        let pos = u16::from_le_bytes(commands[2..4].try_into().unwrap());
+
+        let pos = commands[2].to_le_bytes();
+        let pos = u16::from_le_bytes(pos[0..2].try_into().unwrap());
         unsafe {
             wasm_dbg(pos as u64);
         }
-        state::handle_place_tower(objindex as usize, pos as usize);
+        state::handle_place_tower(&to_full_obj_id(objindex), pos as usize);
     } else if commands[0] == CMD_UPGRADE_INVENTORY {
         let inventory_index = commands[1];
         unsafe {
             wasm_dbg(inventory_index as u64);
         }
-        state::handle_upgrade_inventory(inventory_index as usize);
+        state::handle_upgrade_inventory(&to_full_obj_id(inventory_index));
     }
 }
 
-// load the game with user account
-#[wasm_bindgen]
-pub fn load(account: u64, r0: u64, r1: u64, r2: u64, r3: u64) {
-    unsafe {
-        MERKLE.root = [r0, r1, r2, r3];
+pub struct State {}
+
+impl State {
+    pub fn get_state(pid: Vec<u64>) -> String {
+        //zkwasm_rust_sdk::dbg!("finish loading {:?}", merkle_root);
+        let global = unsafe { &crate::config::GLOBAL };
+        serde_json::to_string(&global).unwrap()
+    }
+    pub fn initialize() {
+        init_state()
     }
 }
 
-#[wasm_bindgen]
-pub fn init(seed: u64) {
-    init_state()
-    //zkwasm_rust_sdk::dbg!("finish loading {:?}", merkle_root);
+pub struct Transaction {
+    pub command: [u64; 4],
 }
 
-#[wasm_bindgen]
-pub fn get_state() -> String {
-    //zkwasm_rust_sdk::dbg!("finish loading {:?}", merkle_root);
-    let global = unsafe { &GLOBAL };
-    serde_json::to_string(&global).unwrap()
+impl Transaction {
+    pub fn decode(params: [u64; 4]) -> Self {
+        let command = [params[0], params[1], params[2], params[3]];
+        Transaction {
+            command,
+        }
+    }
+    pub fn process(&self, pid: &[u64; 4]) -> bool {
+        step(&self.command);
+        true
+    }
 }
