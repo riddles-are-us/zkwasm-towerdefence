@@ -11,6 +11,8 @@ pub mod state;
 const CMD_RUN: u64 = 0;
 const CMD_PLACE_TOWER: u64 = 1;
 const CMD_UPGRADE_INVENTORY: u64 = 2;
+const CMD_MINT_TOWER: u64 = 3;
+const CMD_DROP_TOWER: u64 = 4;
 //const CMD_SPAWN: u64 = 3;
 
 fn to_full_obj_id(id: u64) -> [u64; 4] {
@@ -39,7 +41,21 @@ pub fn step(commands: &[u64; 4]) {
             wasm_dbg(inventory_index as u64);
         }
         state::handle_upgrade_inventory(&to_full_obj_id(inventory_index));
+    } else if commands[0] == CMD_MINT_TOWER {
+        let inventory_index = commands[1];
+        unsafe {
+            wasm_dbg(inventory_index as u64);
+        }
+        let feature = commands[2];
+        state::handle_add_inventory(&to_full_obj_id(inventory_index), feature);
+    } else if commands[0] == CMD_DROP_TOWER {
+        let inventory_index = commands[1];
+        unsafe {
+            wasm_dbg(inventory_index as u64);
+        }
+        state::handle_drop_tower(&to_full_obj_id(inventory_index));
     }
+
 }
 
 pub struct State {}

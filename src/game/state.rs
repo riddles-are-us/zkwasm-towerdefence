@@ -9,9 +9,9 @@ use crate::tile::coordinate::Coordinate;
 use crate::tile::coordinate::RectCoordinate;
 use crate::tile::coordinate::RectDirection;
 use crate::tile::map::Map;
-//use crate::tile::coordinate::Tile;
 use crate::tile::map::PositionedObject;
 use crate::game::object::InventoryObject;
+use crate::config::STANDARD_TOWER;
 //use zkwasm_rust_sdk::require;
 
 // The global state
@@ -20,7 +20,7 @@ pub struct State {
     pub treasure: u64,
     pub monston_spawn_counter: u64,
     pub hp: u64,
-    pub map: Map<RectCoordinate, Object<RectDirection>>,
+    pub map: Map<RectCoordinate>,
     pub events: Vec<Event>,
 }
 
@@ -30,7 +30,29 @@ pub fn handle_place_tower(iid: &[u64; 4], pos: usize) {
     let position = global.map.coordinate_of_tile_index(pos);
     global
         .map
-        .spawn_at(inventory_obj.unwrap().object, position);
+        .place_tower_at(inventory_obj.unwrap(), position);
+}
+
+pub fn handle_add_inventory(iid: &[u64; 4], feature: u64) {
+    let inventory_obj = InventoryObject::get(iid); 
+    if inventory_obj.is_none() {
+        unreachable!()
+    } else {
+        let inventory_obj = InventoryObject::new(iid.clone(), Object::Tower(STANDARD_TOWER[feature as usize].clone()), 10);
+        inventory_obj.store();
+    }
+
+}
+
+pub fn handle_drop_tower(iid: &[u64; 4]) {
+    let global = unsafe { &mut crate::config::GLOBAL };
+    let inventory_obj = InventoryObject::get(iid); 
+    //let position = global.map.coordinate_of_tile_index(pos);
+    /*
+    global
+        .map
+        .remove_tower(inventory_obj.unwrap(), position);
+    */
 }
 
 pub fn handle_upgrade_inventory(iid: &[u64; 4]) {
@@ -49,14 +71,15 @@ pub fn handle_upgrade_inventory(iid: &[u64; 4]) {
 pub fn handle_run() {
     let global = unsafe { &mut crate::config::GLOBAL };
     let map = unsafe { &crate::config::GLOBAL.map };
-    let objs = &mut global.map.objects;
+    let monsters = &mut global.map.monsters;
     let mut collector = vec![];
-    for obj in objs.iter() {
-        if let Object::Collector(_) = obj.object.clone() {
+
+    // figureout all the collectors in the state
+    for obj in global.map.collectors.iter() {
             collector.push(obj.position.clone())
-        }
-    }
-    let mut termination = vec![];
+    };
+    let mut termination_monster = vec![];
+    let mut termination_drop = vec![];
     let mut spawn = vec![];
     let mut tower_range: Vec<(Tower<RectDirection>, RectCoordinate, usize, usize, usize)> = vec![];
 
@@ -65,46 +88,52 @@ pub fn handle_run() {
     //let mut terminates = global.terminates;
     //let mut monsters = global.monsters;
 
-    for (index, obj) in objs.iter_mut().enumerate() {
-        if let Object::Monster(m) = &mut obj.object {
-            if collector.contains(&obj.position) {
-                //terminates -= 1;
-                termination.push(index);
-                damage += m.hp;
-            } else {
-                let index = map.index_of_tile_coordinate(&obj.position);
-                let feature = map.get_feature(index);
-                if let Some(f) = feature {
-                    unsafe { wasm_dbg(f.clone() as u64) };
-                    obj.position = obj.position.adjacent(f)
-                }
+    for (index, obj) in monsters.iter_mut().enumerate() {
+        let m = &obj.object;
+        if collector.contains(&obj.position) {
+            //terminates -= 1;
+            termination_monster.push(index);
+            damage += m.hp;
+        } else {
+            let index = map.index_of_tile_coordinate(&obj.position);
+            let feature = map.get_feature(index);
+            if let Some(f) = feature {
+                unsafe { wasm_dbg(f.clone() as u64) };
+                obj.position = obj.position.adjacent(f)
             }
-        } else if let Object::Dropped(dropped) = &mut obj.object {
-            if collector.contains(&obj.position) {
-                reward += dropped.delta;
-                //terminates -= 1;
-                termination.push(index);
-            } else {
-                let index = map.index_of_tile_coordinate(&obj.position);
-                let feature = map.get_feature(index);
-                if let Some(f) = feature {
-                    unsafe { wasm_dbg(f.clone() as u64) };
-                    obj.position = obj.position.adjacent(f)
-                }
+        }
+    };
+
+    for (index, obj) in global.map.drops.iter_mut().enumerate() {
+        let dropped = &obj.object;
+        if collector.contains(&obj.position) {
+            reward += dropped.delta;
+            //terminates -= 1;
+            termination_drop.push(index);
+        } else {
+            let index = map.index_of_tile_coordinate(&obj.position);
+            let feature = map.get_feature(index);
+            if let Some(f) = feature {
+                unsafe { wasm_dbg(f.clone() as u64) };
+                obj.position = obj.position.adjacent(f)
             }
-        } else if let Object::Spawner(spawner) = &mut obj.object {
-            if spawner.count == 0 {
-                spawn.push(PositionedObject::new(Object::Monster(Monster::new(10, 1, 1)), obj.position.clone()));
-                spawner.count = spawner.rate
-            } else {
-                spawner.count -= 1
-            }
-            // TODO fill object spawner
         }
     }
 
-    for (index, obj) in objs.iter_mut().enumerate() {
-        if let Object::Tower(tower) = &mut obj.object {
+    for (_index, obj) in global.map.spawners.iter_mut().enumerate() {
+        let spawner = &mut obj.object;
+        if spawner.count == 0 {
+            let inner_obj = Object::Monster(Monster::new(10, 1, 1));
+            spawn.push(PositionedObject::new(inner_obj, obj.position.clone()));
+            spawner.count = spawner.rate
+        } else {
+            spawner.count -= 1
+        }
+        // TODO fill object spawner
+    }
+
+    for (index, obj) in global.map.towers.iter_mut().enumerate() {
+        if let Object::Tower(tower) = &mut obj.object.object {
             if tower.count == 0 {
                 tower_range.push((
                     tower.clone(),
@@ -119,14 +148,12 @@ pub fn handle_run() {
         }
     }
 
-    for (index, obj) in objs.iter_mut().enumerate() {
-        if let Object::Monster(_) = &mut obj.object {
-            for t in tower_range.iter_mut() {
-                let range = t.0.range(&t.1, &obj.position);
-                if range < t.2 {
-                    t.2 = range;
-                    t.4 = index;
-                }
+    for (index, obj) in monsters.iter_mut().enumerate() {
+        for t in tower_range.iter_mut() {
+            let range = t.0.range(&t.1, &obj.position);
+            if range < t.2 {
+                t.2 = range;
+                t.4 = index;
             }
         }
     }
@@ -135,39 +162,39 @@ pub fn handle_run() {
 
     for t in tower_range.iter_mut() {
         if t.4 != usize::max_value() {
-            if let Object::Monster(m) = &mut objs[t.4].object {
-                if m.hp < t.0.power {
-                    m.hp = 0;
-                } else {
-                    m.hp -= t.0.power;
-                }
-                if m.hp == 0 {
-                    termination.push(t.4);
-                    spawn.push(PositionedObject::new(
-                        Object::Dropped(Dropped::new(10)),
-                        objs[t.4].position.clone(),
-                    ));
-                }
-                events.push(Event::Attack(t.1.repr(), objs[t.4].position.repr(), 0))
+            let m = &mut monsters[t.4].object;
+            if m.hp < t.0.power {
+                m.hp = 0;
+            } else {
+                m.hp -= t.0.power;
             }
-            if let Object::Tower(tower) = &mut objs[t.3].object {
+            if m.hp == 0 {
+                termination_monster.push(t.4);
+                spawn.push(PositionedObject::new(
+                        Object::Dropped(Dropped::new(10)),
+                        monsters[t.4].position.clone(),
+                        ));
+            }
+            events.push(Event::Attack(t.1.repr(), monsters[t.4].position.repr(), 0));
+            if let Object::Tower(tower) = &mut global.map.towers[t.3].object.object {
                 tower.count = tower.cooldown;
             }
         }
     }
 
-    termination.reverse();
-    for idx in termination {
-        global.map.remove(idx);
+    termination_monster.reverse();
+    for idx in termination_monster {
+        global.map.remove_monster(idx);
     }
 
-    //global.terminates = terminates;
+    termination_drop.reverse();
+    for idx in termination_drop {
+        global.map.remove_monster(idx);
+    }
 
     for obj in spawn.into_iter() {
         global.map.spawn(obj);
     }
-
-    //global.monsters = monsters;
 
     if reward > damage {
         global.treasure += reward - damage;

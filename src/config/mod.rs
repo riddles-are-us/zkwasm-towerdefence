@@ -11,6 +11,7 @@ use crate::tile::coordinate::RectDirection;
 use crate::tile::coordinate::RectCoordinate;
 use crate::tile::coordinate::Coordinate;
 use crate::game::object::Tower;
+use crate::game::object::InventoryObject;
 
 const TOWER_LEVEL: [[u64; 3]; 6] = [
     [5, 2, 4],
@@ -55,7 +56,11 @@ pub static mut GLOBAL: State = State {
         width: 12,
         height: 8,
         tiles: vec![],
-        objects: vec![],
+        spawners: vec![],
+        towers: vec![],
+        collectors: vec![],
+        drops: vec![],
+        monsters: vec![],
     },
     events: vec![],
 };
@@ -176,10 +181,10 @@ pub fn init_state() {
 
     global
         .map
-        .spawn_at(Object::Spawner(spawner), RectCoordinate::new(4, 0));
+        .place_spawner_at(spawner, RectCoordinate::new(4, 0));
     global
         .map
-        .spawn_at(Object::Collector(collector), RectCoordinate::new(10, 0));
+        .place_collector_at(collector, RectCoordinate::new(10, 0));
 }
 
 
