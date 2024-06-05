@@ -249,6 +249,7 @@ pub struct InventoryObject {
     pub object: Object<RectDirection>,
     pub cost: u64,
     pub upgrade_modifier: u64,
+    pub reward: u64,
 }
 
 impl InventoryObject {
@@ -258,6 +259,7 @@ impl InventoryObject {
             cost,
             upgrade_modifier: UPGRADE_COST_MODIFIER,
             object,
+            reward: 0,
         }
     }
 }
@@ -277,6 +279,7 @@ impl InventoryObject {
                 object_id: object_id.clone(),
                 cost: *(slice_iter.next().unwrap()),
                 upgrade_modifier: *(slice_iter.next().unwrap()),
+                reward: *(slice_iter.next().unwrap()),
                 object: o,
             };
             Some(inventory_obj)
@@ -288,6 +291,7 @@ impl InventoryObject {
         let mut data = self.object.to_u64_array();
         data.push(self.cost);
         data.push(self.upgrade_modifier);
+        data.push(self.reward);
         let kvpair = unsafe {&mut MERKLE_MAP};
         kvpair.set(&self.object_id, data.as_slice());
         zkwasm_rust_sdk::dbg!("end store object\n");

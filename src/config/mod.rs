@@ -1,7 +1,6 @@
 use zkwasm_rust_sdk::require;
 use crate::game::state::State;
 use crate::tile::map::Map;
-use crate::game::object::Object;
 use crate::game::object::Spawner;
 use crate::game::object::Collector;
 //use crate::game::object::Dropped;
@@ -11,7 +10,7 @@ use crate::tile::coordinate::RectDirection;
 use crate::tile::coordinate::RectCoordinate;
 use crate::tile::coordinate::Coordinate;
 use crate::game::object::Tower;
-use crate::game::object::InventoryObject;
+use serde::Serialize;
 
 const TOWER_LEVEL: [[u64; 3]; 6] = [
     [5, 2, 4],
@@ -39,13 +38,26 @@ pub fn upgrade_tower(t: &mut Tower<RectDirection>) {
 pub const UPGRADE_MODIFIER: u64 = 5;
 pub const UPGRADE_COST_MODIFIER: u64 = 2;
 
+#[derive (Serialize, Clone)]
+pub struct Config {
+    pub standard_towers: [Tower<RectDirection>; 4],
+}
+
+impl Config {
+    pub fn to_json_string() -> String {
+        serde_json::to_string(&CONFIG.clone()).unwrap()
+    }
+}
+
 lazy_static::lazy_static! {
-    pub static ref STANDARD_TOWER: [Tower<RectDirection>; 4] = [
-        build_tower(1, RectDirection::Top),
-        build_tower(1, RectDirection::Left),
-        build_tower(1, RectDirection::Right),
-        build_tower(1, RectDirection::Bottom)
-    ];
+    pub static ref CONFIG: Config = Config {
+        standard_towers: [
+            build_tower(1, RectDirection::Top),
+            build_tower(1, RectDirection::Left),
+            build_tower(1, RectDirection::Right),
+            build_tower(1, RectDirection::Bottom)
+        ],
+    };
 }
 
 pub static mut GLOBAL: State = State {
@@ -56,12 +68,12 @@ pub static mut GLOBAL: State = State {
         width: 12,
         height: 8,
         tiles: vec![],
-        spawners: vec![],
-        towers: vec![],
-        collectors: vec![],
-        drops: vec![],
-        monsters: vec![],
     },
+    spawners: vec![],
+    towers: vec![],
+    collectors: vec![],
+    drops: vec![],
+    monsters: vec![],
     events: vec![],
 };
 
@@ -180,10 +192,8 @@ pub fn init_state() {
         .set_feature(cor_to_index(10, 1), Some(RectDirection::Top));
 
     global
-        .map
         .place_spawner_at(spawner, RectCoordinate::new(4, 0));
     global
-        .map
         .place_collector_at(collector, RectCoordinate::new(10, 0));
 }
 

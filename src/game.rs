@@ -22,7 +22,7 @@ fn to_full_obj_id(id: u64) -> [u64; 4] {
 /// Step function receives a encoded command and changes the global state accordingly
 pub fn step(commands: &[u64; 4]) {
     if commands[0] == CMD_RUN {
-        state::handle_run();
+        unsafe {crate::config::GLOBAL.run()};
     } else if commands[0] == CMD_PLACE_TOWER {
         let objindex = commands[1];
         unsafe {

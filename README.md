@@ -1,14 +1,14 @@
 # towerdefence-demo
 
 ## API conventions
-Place Tower:
+Step:
 [command = 0, reserved = 0, reserved = 0, reserved = 0]
 
 Place Tower:
 [command = 1, TowerID: u64, Position: u64 = [u32, u32], reserved = 0]
 
 Mint Tower:
-[command = 3, TowerID: u64, reserved = 0, reserved = 0]
+[command = 3, TowerID: u64, TowerFeaature: u64, reserved = 0]
 
 Drop Tower:
 [command = 4, TowerID: u64, reserved = 0, reserved = 0]
