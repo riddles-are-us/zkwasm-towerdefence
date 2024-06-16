@@ -1,18 +1,21 @@
 use crate::config::init_state;
+use zkwasm_rust_sdk::require;
 use zkwasm_rust_sdk::wasm_dbg;
 
 pub mod event;
 pub mod object;
 pub mod state;
+pub mod player;
+pub mod serialize;
 
 // This is a standalone game state manipulate module that connets with UI
 // controllers and model handlers
 
 const CMD_RUN: u64 = 0;
 const CMD_PLACE_TOWER: u64 = 1;
-const CMD_UPGRADE_INVENTORY: u64 = 2;
 const CMD_MINT_TOWER: u64 = 3;
 const CMD_DROP_TOWER: u64 = 4;
+const CMD_UPGRADE_TOWER: u64 = 5;
 //const CMD_SPAWN: u64 = 3;
 
 fn to_full_obj_id(id: u64) -> [u64; 4] {
@@ -20,27 +23,22 @@ fn to_full_obj_id(id: u64) -> [u64; 4] {
 }
 
 /// Step function receives a encoded command and changes the global state accordingly
-pub fn step(commands: &[u64; 4]) {
+pub fn handle_command(commands: &[u64; 4], pid: &[u64; 4]) {
     if commands[0] == CMD_RUN {
         unsafe {crate::config::GLOBAL.run()};
     } else if commands[0] == CMD_PLACE_TOWER {
+        let player = player::Player::get(pid);
         let objindex = commands[1];
-        unsafe {
-            wasm_dbg(objindex as u64);
-        }
-
+        unsafe { require(player.unwrap().owns(objindex)) };
         let pos = commands[2].to_le_bytes();
         let pos = u16::from_le_bytes(pos[0..2].try_into().unwrap());
-        unsafe {
-            wasm_dbg(pos as u64);
-        }
+        zkwasm_rust_sdk::dbg!("place tower ...\n");
         state::handle_place_tower(&to_full_obj_id(objindex), pos as usize);
-    } else if commands[0] == CMD_UPGRADE_INVENTORY {
-        let inventory_index = commands[1];
-        unsafe {
-            wasm_dbg(inventory_index as u64);
-        }
-        state::handle_upgrade_inventory(&to_full_obj_id(inventory_index));
+    } else if commands[0] == CMD_UPGRADE_TOWER {
+        let player = player::Player::get(pid);
+        let objindex = commands[1];
+        unsafe { require(player.unwrap().owns(objindex)) };
+        state::handle_upgrade_inventory(&to_full_obj_id(objindex));
     } else if commands[0] == CMD_MINT_TOWER {
         let inventory_index = commands[1];
         unsafe {
@@ -83,7 +81,7 @@ impl Transaction {
         }
     }
     pub fn process(&self, pid: &[u64; 4]) -> bool {
-        step(&self.command);
+        handle_command(&self.command, pid);
         true
     }
 }

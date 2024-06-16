@@ -1,17 +1,13 @@
 use serde::Serialize;
 use std::slice::IterMut;
 use crate::config::UPGRADE_COST_MODIFIER;
+use crate::game::serialize::U64arraySerialize;
 
 use crate::{
     config::upgrade_tower,
     tile::coordinate::{Coordinate, RectCoordinate, RectDirection},
 };
 use crate::MERKLE_MAP;
-
-pub trait U64arraySerialize {
-    fn to_u64_array(&self) -> Vec<u64>;
-    fn from_u64_array(data: &mut IterMut<u64>) -> Self;
-}
 
 #[derive(Clone, Serialize)]
 pub struct Monster {
@@ -294,8 +290,6 @@ impl InventoryObject {
         data.push(self.reward);
         let kvpair = unsafe {&mut MERKLE_MAP};
         kvpair.set(&self.object_id, data.as_slice());
-        zkwasm_rust_sdk::dbg!("end store object\n");
-        todo!()
     }
 }
 
