@@ -42,17 +42,19 @@ pub struct Tower<Direction: Clone + Serialize> {
     pub power: u64,
     pub cooldown: u64,
     pub count: u64,
+    pub owner: [u64; 2], // tail of the pubkey of the owner
     direction: Direction,
 }
 
 impl Tower<RectDirection> {
-    pub fn new(lvl: u64, range: u64, power: u64, cooldown: u64, direction: RectDirection) -> Self {
+    pub fn new(lvl: u64, range: u64, power: u64, cooldown: u64, owner: [u64; 2], direction: RectDirection) -> Self {
         Tower {
             lvl,
             range,
             power,
             cooldown,
             count: cooldown, // initial count
+            owner,
             direction,
         }
     }
@@ -110,7 +112,7 @@ impl Tower<RectDirection> {
 
 impl U64arraySerialize for Tower<RectDirection> {
     fn to_u64_array(&self) -> Vec<u64> {
-        vec![self.lvl, self.range, self.power, self.cooldown, self.direction.clone() as u64]
+        vec![self.lvl, self.range, self.power, self.cooldown, self.owner[0], self.owner[1], self.direction.clone() as u64]
     }
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
         let directions = RectCoordinate::directions();
@@ -119,6 +121,7 @@ impl U64arraySerialize for Tower<RectDirection> {
             *data.next().unwrap(),
             *data.next().unwrap(),
             *data.next().unwrap(),
+            [*data.next().unwrap(), *data.next().unwrap()],
             directions[*data.next().unwrap() as usize].clone()
         )
     }

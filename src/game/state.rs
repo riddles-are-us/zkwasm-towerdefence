@@ -88,18 +88,20 @@ impl State {
 
 pub fn handle_place_tower(iid: &[u64; 4], pos: usize) {
     let global = unsafe { &mut crate::config::GLOBAL };
-    let inventory_obj = InventoryObject::get(iid); 
+    let inventory_obj = InventoryObject::get(iid);
     let position = global.map.coordinate_of_tile_index(pos);
     global
         .place_tower_at(inventory_obj.unwrap(), position);
 }
 
-pub fn handle_add_inventory(iid: &[u64; 4], feature: u64) {
-    let inventory_obj = InventoryObject::get(iid); 
+pub fn handle_add_inventory(iid: &[u64; 4], feature: u64, pid: &[u64; 4]) {
+    let inventory_obj = InventoryObject::get(iid);
     if inventory_obj.is_none() {
         unreachable!()
     } else {
-        let tower = CONFIG.standard_towers[feature as usize].clone();
+        let mut tower = CONFIG.standard_towers[feature as usize].clone();
+        tower.owner[0] = pid[1];
+        tower.owner[1] = pid[2];
         let inventory_obj = InventoryObject::new(iid.clone(), Object::Tower(tower), 10);
         inventory_obj.store();
     }
@@ -108,7 +110,7 @@ pub fn handle_add_inventory(iid: &[u64; 4], feature: u64) {
 
 pub fn handle_drop_tower(iid: &[u64; 4]) {
     let global = unsafe { &mut crate::config::GLOBAL };
-    let inventory_obj = InventoryObject::get(iid); 
+    //let inventory_obj = InventoryObject::get(iid); 
     let pos = global.towers.iter().position(|x| {
         x.object.object_id == *iid
     });

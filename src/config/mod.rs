@@ -23,7 +23,7 @@ const TOWER_LEVEL: [[u64; 3]; 6] = [
 
 pub fn build_tower(lvl: u64, dir: RectDirection) -> Tower<RectDirection> {
     let l = TOWER_LEVEL[lvl as usize];
-    Tower::new(lvl, l[0], l[1], l[2], dir)
+    Tower::new(lvl, l[0], l[1], l[2], [0,0], dir)
 }
 
 pub fn upgrade_tower(t: &mut Tower<RectDirection>) {
@@ -46,6 +46,10 @@ pub struct Config {
 impl Config {
     pub fn to_json_string() -> String {
         serde_json::to_string(&CONFIG.clone()).unwrap()
+    }
+    pub fn flush_settlement() -> Vec<u8> {
+        //SettleMentInfo::flush_settlement()
+        vec![]
     }
 }
 

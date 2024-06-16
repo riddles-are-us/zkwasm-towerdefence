@@ -10,7 +10,7 @@ pub struct Player {
 impl Player {
     pub fn get(player_id: &[u64; 4]) -> Option<Self> {
         let kvpair = unsafe {&mut MERKLE_MAP};
-        let mut data = kvpair.get(&player_id);
+        let data = kvpair.get(&player_id);
         if data.is_empty() {
             None
         } else {
@@ -22,7 +22,6 @@ impl Player {
         }
     }
     pub fn store(&self) {
-        let pid = self.player_id;
         let kvpair = unsafe {&mut MERKLE_MAP};
         kvpair.set(&self.player_id, self.inventory.as_slice());
     }
@@ -36,8 +35,3 @@ impl Player {
         return false;
     }
 }
- 
-
- 
-
-
