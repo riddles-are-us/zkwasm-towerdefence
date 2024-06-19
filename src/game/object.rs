@@ -231,6 +231,14 @@ impl U64arraySerialize for Object<RectDirection> {
 }
 
 impl Object<RectDirection> {
+    pub fn get_the_tower(&self) -> &Tower<RectDirection> {
+        match self {
+            Object::Tower(t) => t,
+            _ => {
+                todo!()
+            }
+        }
+    }
     pub fn upgrade(&mut self) {
         match self {
             Object::Tower(t) => upgrade_tower(t),

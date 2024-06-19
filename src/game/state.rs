@@ -8,6 +8,7 @@ use super::object::Tower;
 use super::object::Monster;
 use super::object::Collector;
 use super::object::Spawner;
+use super::player::Player;
 use crate::tile::coordinate::Coordinate;
 use crate::tile::coordinate::RectCoordinate;
 use crate::tile::coordinate::RectDirection;
@@ -96,7 +97,7 @@ pub fn handle_place_tower(iid: &[u64; 4], pos: usize) {
 
 pub fn handle_add_inventory(iid: &[u64; 4], feature: u64, pid: &[u64; 4]) {
     let inventory_obj = InventoryObject::get(iid);
-    if inventory_obj.is_none() {
+    if inventory_obj.is_some() {
         unreachable!()
     } else {
         let mut tower = CONFIG.standard_towers[feature as usize].clone();
@@ -104,6 +105,26 @@ pub fn handle_add_inventory(iid: &[u64; 4], feature: u64, pid: &[u64; 4]) {
         tower.owner[1] = pid[2];
         let inventory_obj = InventoryObject::new(iid.clone(), Object::Tower(tower), 10);
         inventory_obj.store();
+    }
+
+}
+
+pub fn handle_claim_tower(iid: &[u64; 4], pid: &[u64; 4]) {
+    let inventory_obj = InventoryObject::get(iid);
+    let mut player = Player::get(pid).unwrap();
+    if inventory_obj.is_none() {
+        unreachable!()
+    } else {
+        let obj = inventory_obj.unwrap().object.clone();
+        let tower = obj.get_the_tower();
+        unsafe {
+            zkwasm_rust_sdk::require (tower.owner[0] == pid[1]);
+            zkwasm_rust_sdk::require (tower.owner[1] == pid[2]);
+        }
+        if !player.owns(iid[0]) {
+            player.inventory.push(iid[0]);
+            player.store()
+        }
     }
 
 }

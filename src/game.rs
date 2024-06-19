@@ -46,20 +46,12 @@ pub fn handle_command(commands: &[u64; 4], pid: &[u64; 4]) {
     } else if command == CMD_MINT_TOWER {
         let feature = commands[0] >> 8;
         let objindex = commands[1];
-        state::handle_add_inventory(&to_full_obj_id(objindex), feature, pid);
+        let pid = [0, commands[2], commands[3], 0]; // 128bit security strength
+        state::handle_add_inventory(&to_full_obj_id(objindex), feature, &pid);
     } else if command == CMD_CLAIM_TOWER {
         let feature = commands[0] >> 8;
         let objindex = commands[1];
-        let player = player::Player::get(pid);
-        if let Some(mut p) = player {
-            unsafe {require (!p.owns(objindex))};
-            p.inventory.push(objindex);
-            p.store();
-        } else {
-            let p = Player { player_id: pid.clone(), inventory: vec![objindex] };
-            p.store()
-        }
-        state::handle_add_inventory(&to_full_obj_id(objindex), feature, pid);
+        state::handle_claim_tower(&to_full_obj_id(objindex), pid);
     } else if commands[0] == CMD_DROP_TOWER {
         let inventory_index = commands[1];
         unsafe {
