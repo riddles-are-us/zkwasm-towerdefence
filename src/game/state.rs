@@ -21,9 +21,8 @@ use crate::config::CONFIG;
 // The global state
 #[derive(Clone, Serialize)]
 pub struct State {
-    pub treasure: u64,
+    pub id_allocator: u64,
     pub monston_spawn_counter: u64,
-    pub hp: u64,
     pub map: Map<RectCoordinate>,
     pub monsters: Vec<PositionedObject<RectCoordinate, Monster>>,
     pub drops: Vec<PositionedObject<RectCoordinate, Dropped>>,
@@ -35,19 +34,22 @@ pub struct State {
 
 impl State {
     pub fn place_spawner_at(&mut self, object: Spawner, position: RectCoordinate) -> &PositionedObject<RectCoordinate, Spawner> {
-        self.spawners.push(PositionedObject::new(object, position));
+        self.id_allocator += 1;
+        self.spawners.push(PositionedObject::new(object, position, self.id_allocator));
         self.spawners.get(self.spawners.len() - 1).unwrap()
     }
 
     pub fn place_collector_at(&mut self, object: Collector, position: RectCoordinate) -> &PositionedObject<RectCoordinate, Collector> {
-        self.collectors.push(PositionedObject::new(object, position));
+        self.id_allocator += 1;
+        self.collectors.push(PositionedObject::new(object, position, self.id_allocator));
         self.collectors.get(self.collectors.len() - 1).unwrap()
     }
 
     pub fn place_tower_at(&mut self, object: InventoryObject, position: RectCoordinate) -> &PositionedObject<RectCoordinate, InventoryObject> {
         unsafe {require(self.map.get_occupy(&position) != 0);}
+        self.id_allocator += 1;
         self.map.set_occupy(&position, 1);
-        self.towers.push(PositionedObject::new(object, position));
+        self.towers.push(PositionedObject::new(object, position, self.id_allocator));
         self.towers.get(self.towers.len() - 1).unwrap()
     }
 
@@ -58,7 +60,8 @@ impl State {
     }
 
     pub fn spawn_monster_at(&mut self, object: Monster, position: RectCoordinate) -> &PositionedObject<RectCoordinate, Monster> {
-        self.monsters.push(PositionedObject::new(object, position));
+        self.id_allocator += 1;
+        self.monsters.push(PositionedObject::new(object, position, self.id_allocator));
         self.monsters.get(self.monsters.len() - 1).unwrap()
     }
 
@@ -67,7 +70,8 @@ impl State {
     }
 
     pub fn spawn_dropped_at(&mut self, object: Dropped, position: RectCoordinate) -> &PositionedObject<RectCoordinate, Monster> {
-        self.drops.push(PositionedObject::new(object, position));
+        self.id_allocator += 1;
+        self.drops.push(PositionedObject::new(object, position, self.id_allocator));
         self.monsters.get(self.monsters.len() - 1).unwrap()
     }
 
@@ -82,9 +86,6 @@ impl State {
             _ => unreachable!()
         };
     }
-
-
-
 }
 
 pub fn handle_place_tower(iid: &[u64; 4], pos: usize) {
@@ -95,10 +96,13 @@ pub fn handle_place_tower(iid: &[u64; 4], pos: usize) {
         .place_tower_at(inventory_obj.unwrap(), position);
 }
 
-pub fn handle_add_inventory(iid: &[u64; 4], feature: u64, pid: &[u64; 4]) {
-    let inventory_obj = InventoryObject::get(iid);
-    if inventory_obj.is_some() {
-        unreachable!()
+pub fn handle_update_inventory(iid: &[u64; 4], feature: u64, pid: &[u64; 4]) {
+    let mut inventory_obj = InventoryObject::get(iid);
+    if let Some(inventory_obj) = inventory_obj.as_mut() {
+        let tower = inventory_obj.object.get_the_tower_mut();
+        tower.owner[0] = pid[1];
+        tower.owner[1] = pid[2];
+        inventory_obj.store();
     } else {
         let mut tower = CONFIG.standard_towers[feature as usize].clone();
         tower.owner[0] = pid[1];
@@ -170,17 +174,10 @@ impl State {
         let mut spawn = vec![];
         let mut tower_range: Vec<(Tower<RectDirection>, RectCoordinate, usize, usize, usize)> = vec![];
 
-        let mut reward = 0;
-        let mut damage = 0;
-        //let mut terminates = global.terminates;
-        //let mut monsters = global.monsters;
-
         for (index, obj) in self.monsters.iter_mut().enumerate() {
-            let m = &obj.object;
+            //let m = &obj.object;
             if collector.contains(&obj.position) {
-                //terminates -= 1;
                 termination_monster.push(index);
-                damage += m.hp;
             } else {
                 let index = self.map.index_of_tile_coordinate(&obj.position);
                 let feature = self.map.get_feature(index);
@@ -192,9 +189,8 @@ impl State {
         };
 
         for (index, obj) in self.drops.iter_mut().enumerate() {
-            let dropped = &obj.object;
+            //let dropped = &obj.object;
             if collector.contains(&obj.position) {
-                reward += dropped.delta;
                 //terminates -= 1;
                 termination_drop.push(index);
             } else {
@@ -211,7 +207,8 @@ impl State {
             let spawner = &mut obj.object;
             if spawner.count == 0 {
                 let inner_obj = Object::Monster(Monster::new(10, 1, 1));
-                spawn.push(PositionedObject::new(inner_obj, obj.position.clone()));
+                self.id_allocator += 1;
+                spawn.push(PositionedObject::new(inner_obj, obj.position.clone(), self.id_allocator));
                 spawner.count = spawner.rate
             } else {
                 spawner.count -= 1
@@ -258,9 +255,11 @@ impl State {
                 if m.hp == 0 {
                     self.towers[t.3].object.reward += m.hp; // kill reward
                     termination_monster.push(t.4);
+                    self.id_allocator += 1;
                     spawn.push(PositionedObject::new(
                             Object::Dropped(Dropped::new(10)),
                             self.monsters[t.4].position.clone(),
+                            self.id_allocator,
                             ));
                 }
                 events.push(Event::Attack(t.1.repr(), self.monsters[t.4].position.repr(), 0));
@@ -283,10 +282,6 @@ impl State {
 
         for obj in spawn.into_iter() {
             self.spawn(obj);
-        }
-
-        if reward > damage {
-            self.treasure += reward - damage;
         }
 
         self.events = events;

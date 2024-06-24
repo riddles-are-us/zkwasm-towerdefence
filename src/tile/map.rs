@@ -4,13 +4,15 @@ use serde::Serialize;
 
 #[derive(Clone, Serialize)]
 pub struct PositionedObject<C: Coordinate, Object: Clone> {
+    pub id: u64, // unique id in the map
     pub position: C,
     pub object: Object,
 }
 
 impl<C: Coordinate, O: Clone> PositionedObject<C, O> {
-    pub fn new(obj: O, pos: C) -> Self {
+    pub fn new(obj: O, pos: C, id: u64) -> Self {
         PositionedObject {
+            id,
             object: obj,
             position: pos,
         }

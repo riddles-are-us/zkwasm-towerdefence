@@ -65,8 +65,7 @@ lazy_static::lazy_static! {
 }
 
 pub static mut GLOBAL: State = State {
-    treasure: 100,
-    hp: 0,
+    id_allocator: 0,
     monston_spawn_counter: 3,
     map: Map {
         width: 12,

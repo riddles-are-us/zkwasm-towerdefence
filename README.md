@@ -7,8 +7,11 @@ Step:
 Place Tower:
 [command = 1, TowerID: u64, Position: u64 = [u32, u32], reserved = 0]
 
+Claim Tower:
+[command = 2, TowerID: u64, reserved = 0, reserved = 0]
+
 Mint Tower:
-[command = 3, TowerID: u64, TowerFeaature: u64, reserved = 0]
+[command = 3 && (TowerFeature << 8), TowerID: u64, PubkeySecondU64: u64, PubkeyThirdU64 = 0]
 
 Drop Tower:
 [command = 4, TowerID: u64, reserved = 0, reserved = 0]

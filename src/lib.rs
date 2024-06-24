@@ -3,7 +3,6 @@ use wasm_bindgen::prelude::*;
 pub mod config;
 pub mod game;
 pub mod settlement;
-pub mod render;
 pub mod tile;
 pub mod tx;
 

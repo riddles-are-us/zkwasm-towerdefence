@@ -239,6 +239,15 @@ impl Object<RectDirection> {
             }
         }
     }
+    pub fn get_the_tower_mut(&mut self) -> &mut Tower<RectDirection> {
+        match self {
+            Object::Tower(t) => t,
+            _ => {
+                todo!()
+            }
+        }
+    }
+
     pub fn upgrade(&mut self) {
         match self {
             Object::Tower(t) => upgrade_tower(t),
