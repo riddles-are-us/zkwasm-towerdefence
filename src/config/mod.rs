@@ -64,12 +64,15 @@ lazy_static::lazy_static! {
     };
 }
 
+const WIDTH:usize = 12;
+const HEIGHT:usize= 12;
+
 pub static mut GLOBAL: State = State {
     id_allocator: 0,
     monston_spawn_counter: 3,
     map: Map {
-        width: 12,
-        height: 8,
+        width: WIDTH,
+        height: HEIGHT,
         tiles: vec![],
     },
     spawners: vec![],
@@ -81,7 +84,46 @@ pub static mut GLOBAL: State = State {
 };
 
 fn cor_to_index(x: usize, y: usize) -> usize {
-    x + y * 12
+    x + y * WIDTH
+}
+
+macro_rules! mb {
+    ($idx: ident) => {
+        let global = unsafe { &mut GLOBAL };
+        global.map.set_feature($idx, Some(RectDirection::Bottom));
+        $idx += 1;
+    };
+}
+
+macro_rules! mt {
+    ($idx: ident) => {
+        let global = unsafe { &mut GLOBAL };
+        global.map.set_feature($idx, Some(RectDirection::Top));
+        $idx += 1;
+    };
+}
+
+macro_rules! ml {
+    ($idx: ident) => {
+        let global = unsafe { &mut GLOBAL };
+        global.map.set_feature($idx, Some(RectDirection::Left));
+        $idx += 1;
+    };
+}
+
+macro_rules! mr {
+    ($idx: ident) => {
+        let global = unsafe { &mut GLOBAL };
+        global.map.set_feature($idx, Some(RectDirection::Right));
+        $idx += 1;
+    };
+}
+
+// empty
+macro_rules! em {
+    ($idx:ident) => {
+        $idx += 1;
+    };
 }
 
 pub fn init_state() {
@@ -94,105 +136,19 @@ pub fn init_state() {
             .tiles
             .push(Tile::new(RectCoordinate::new(0, 0), None))
     }
+    let mut m = 0;
+    em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m);
+    em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
+    em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
+    em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mb!(m); em!(m); em!(m); mt!(m); em!(m);
+    em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); em!(m); mt!(m); em!(m);
+    em!(m); em!(m); em!(m); em!(m); mb!(m); ml!(m); ml!(m); ml!(m); em!(m); em!(m); mt!(m); em!(m);
+    em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
+    em!(m); em!(m); em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m);
 
-    global
-        .map
-        .set_feature(cor_to_index(2, 1), Some(RectDirection::Bottom));
-
-    global
-        .map
-        .set_feature(cor_to_index(4, 0), Some(RectDirection::Bottom));
-    global
-        .map
-        .set_feature(cor_to_index(4, 1), Some(RectDirection::Left));
-    global
-        .map
-        .set_feature(cor_to_index(3, 1), Some(RectDirection::Left));
-
-    global
-        .map
-        .set_feature(cor_to_index(2, 2), Some(RectDirection::Bottom));
-    global
-        .map
-        .set_feature(cor_to_index(2, 3), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(3, 3), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(4, 3), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(5, 3), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(6, 3), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(7, 3), Some(RectDirection::Bottom));
-    global
-        .map
-        .set_feature(cor_to_index(7, 4), Some(RectDirection::Bottom));
-    global
-        .map
-        .set_feature(cor_to_index(7, 5), Some(RectDirection::Left));
-    global
-        .map
-        .set_feature(cor_to_index(6, 5), Some(RectDirection::Left));
-    global
-        .map
-        .set_feature(cor_to_index(5, 5), Some(RectDirection::Left));
-    global
-        .map
-        .set_feature(cor_to_index(4, 5), Some(RectDirection::Left));
-    global
-        .map
-        .set_feature(cor_to_index(3, 5), Some(RectDirection::Bottom));
-    global
-        .map
-        .set_feature(cor_to_index(3, 6), Some(RectDirection::Bottom));
-    global
-        .map
-        .set_feature(cor_to_index(3, 7), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(4, 7), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(5, 7), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(6, 7), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(7, 7), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(8, 7), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(9, 7), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(10, 7), Some(RectDirection::Top));
-    global
-        .map
-        .set_feature(cor_to_index(10, 6), Some(RectDirection::Top));
-    global
-        .map
-        .set_feature(cor_to_index(10, 5), Some(RectDirection::Top));
-    global
-        .map
-        .set_feature(cor_to_index(10, 4), Some(RectDirection::Top));
-    global
-        .map
-        .set_feature(cor_to_index(10, 3), Some(RectDirection::Top));
-    global
-        .map
-        .set_feature(cor_to_index(10, 2), Some(RectDirection::Top));
-    global
-        .map
-        .set_feature(cor_to_index(10, 1), Some(RectDirection::Top));
+    if m != WIDTH * HEIGHT - 1 {
+        unreachable!();
+    }
 
     global
         .place_spawner_at(spawner, RectCoordinate::new(4, 0));
