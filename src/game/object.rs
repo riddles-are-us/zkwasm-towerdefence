@@ -1,13 +1,13 @@
-use serde::Serialize;
-use std::slice::IterMut;
 use crate::config::UPGRADE_COST_MODIFIER;
 use crate::game::serialize::U64arraySerialize;
+use serde::Serialize;
+use std::slice::IterMut;
 
+use crate::MERKLE_MAP;
 use crate::{
     config::upgrade_tower,
     tile::coordinate::{Coordinate, RectCoordinate, RectDirection},
 };
-use crate::MERKLE_MAP;
 
 #[derive(Clone, Serialize)]
 pub struct Monster {
@@ -42,12 +42,20 @@ pub struct Tower<Direction: Clone + Serialize> {
     pub power: u64,
     pub cooldown: u64,
     pub count: u64,
+    #[serde(skip_serializing)]
     pub owner: [u64; 2], // tail of the pubkey of the owner
     direction: Direction,
 }
 
 impl Tower<RectDirection> {
-    pub fn new(lvl: u64, range: u64, power: u64, cooldown: u64, owner: [u64; 2], direction: RectDirection) -> Self {
+    pub fn new(
+        lvl: u64,
+        range: u64,
+        power: u64,
+        cooldown: u64,
+        owner: [u64; 2],
+        direction: RectDirection,
+    ) -> Self {
         Tower {
             lvl,
             range,
@@ -112,7 +120,15 @@ impl Tower<RectDirection> {
 
 impl U64arraySerialize for Tower<RectDirection> {
     fn to_u64_array(&self) -> Vec<u64> {
-        vec![self.lvl, self.range, self.power, self.cooldown, self.owner[0], self.owner[1], self.direction.clone() as u64]
+        vec![
+            self.lvl,
+            self.range,
+            self.power,
+            self.cooldown,
+            self.owner[0],
+            self.owner[1],
+            self.direction.clone() as u64,
+        ]
     }
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
         let directions = RectCoordinate::directions();
@@ -122,7 +138,7 @@ impl U64arraySerialize for Tower<RectDirection> {
             *data.next().unwrap(),
             *data.next().unwrap(),
             [*data.next().unwrap(), *data.next().unwrap()],
-            directions[*data.next().unwrap() as usize].clone()
+            directions[*data.next().unwrap() as usize].clone(),
         )
     }
 }
@@ -144,10 +160,7 @@ impl U64arraySerialize for Spawner {
         vec![self.rate, self.count]
     }
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
-        Self::new(
-            *(data.next().unwrap()),
-            *data.next().unwrap(),
-        )
+        Self::new(*(data.next().unwrap()), *data.next().unwrap())
     }
 }
 
@@ -167,12 +180,9 @@ impl U64arraySerialize for Collector {
         vec![self.buf]
     }
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
-        Self::new(
-            *(data.next().unwrap()),
-        )
+        Self::new(*(data.next().unwrap()))
     }
 }
-
 
 #[derive(Clone, Serialize)]
 pub struct Dropped {
@@ -190,9 +200,7 @@ impl U64arraySerialize for Dropped {
         vec![self.delta]
     }
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
-        Self::new(
-            *(data.next().unwrap()),
-        )
+        Self::new(*(data.next().unwrap()))
     }
 }
 
@@ -214,18 +222,18 @@ impl U64arraySerialize for Object<RectDirection> {
             Object::Dropped(o) => (o.to_u64_array(), 3),
             Object::Collector(o) => (o.to_u64_array(), 4),
         };
-        data.insert(0,t);
+        data.insert(0, t);
         data
     }
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
-        let t:u64 = *(data.next().unwrap());
+        let t: u64 = *(data.next().unwrap());
         match t {
             0 => Object::Monster(Monster::from_u64_array(data)),
             1 => Object::Monster(Monster::from_u64_array(data)),
             2 => Object::Monster(Monster::from_u64_array(data)),
             3 => Object::Monster(Monster::from_u64_array(data)),
             4 => Object::Monster(Monster::from_u64_array(data)),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }
@@ -256,7 +264,6 @@ impl Object<RectDirection> {
             }
         }
     }
-
 }
 
 #[derive(Clone, Serialize)]
@@ -282,7 +289,7 @@ impl InventoryObject {
 
 impl InventoryObject {
     pub fn get(object_id: &[u64; 4]) -> Option<Self> {
-        let kvpair = unsafe {&mut MERKLE_MAP};
+        let kvpair = unsafe { &mut MERKLE_MAP };
         zkwasm_rust_sdk::dbg!("get object with oid {:?}\n", object_id);
         let mut data = kvpair.get(&object_id);
         zkwasm_rust_sdk::dbg!("get object with {:?}\n", data);
@@ -308,9 +315,7 @@ impl InventoryObject {
         data.push(self.cost);
         data.push(self.upgrade_modifier);
         data.push(self.reward);
-        let kvpair = unsafe {&mut MERKLE_MAP};
+        let kvpair = unsafe { &mut MERKLE_MAP };
         kvpair.set(&self.object_id, data.as_slice());
     }
 }
-
-

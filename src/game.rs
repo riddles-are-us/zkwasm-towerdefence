@@ -1,14 +1,34 @@
 use crate::config::init_state;
 use player::Player;
+use serde::{ser::SerializeSeq, Serialize, Serializer};
 use zkwasm_rust_sdk::require;
 use zkwasm_rust_sdk::wasm_dbg;
-use serde::Serialize;
+
+// Custom serializer for `u64` as a string.
+pub fn bigint_serializer<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(&value.to_string())
+}
+
+// Custom serializer for `[u64; 4]` as an array of strings.
+pub fn bigint_array_serializer<S>(array: &Vec<u64>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let mut seq = serializer.serialize_seq(Some(array.len()))?;
+    for &element in array {
+        seq.serialize_element(&element.to_string())?;
+    }
+    seq.end()
+}
 
 pub mod event;
 pub mod object;
-pub mod state;
 pub mod player;
 pub mod serialize;
+pub mod state;
 
 // This is a standalone game state manipulate module that connets with UI
 // controllers and model handlers
@@ -29,7 +49,7 @@ fn to_full_obj_id(id: u64) -> [u64; 4] {
 pub fn handle_command(commands: &[u64; 4], pid: &[u64; 4]) {
     let command = commands[0] & 0xff;
     if command == CMD_RUN {
-        unsafe {crate::config::GLOBAL.run()};
+        unsafe { crate::config::GLOBAL.run() };
     } else if command == CMD_PLACE_TOWER {
         let player = player::Player::get(pid);
         let objindex = commands[1];
@@ -58,7 +78,6 @@ pub fn handle_command(commands: &[u64; 4], pid: &[u64; 4]) {
         }
         state::handle_drop_tower(&to_full_obj_id(inventory_index));
     }
-
 }
 
 pub struct State {}
@@ -77,9 +96,10 @@ impl State {
         serde_json::to_string(
             &(UserState {
                 player,
-                global: &global
-            })
-        ).unwrap()
+                global: &global,
+            }),
+        )
+        .unwrap()
     }
     pub fn initialize() {
         init_state()
@@ -93,9 +113,7 @@ pub struct Transaction {
 impl Transaction {
     pub fn decode(params: [u64; 4]) -> Self {
         let command = [params[0], params[1], params[2], params[3]];
-        Transaction {
-            command,
-        }
+        Transaction { command }
     }
     pub fn process(&self, pid: &[u64; 4]) -> bool {
         handle_command(&self.command, pid);

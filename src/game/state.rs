@@ -1,28 +1,28 @@
-use serde::Serialize;
-use zkwasm_rust_sdk::wasm_dbg;
-use zkwasm_rust_sdk::require;
 use super::event::Event;
-use super::object::Dropped;
-use super::object::Object;
-use super::object::Tower;
-use super::object::Monster;
 use super::object::Collector;
+use super::object::Dropped;
+use super::object::Monster;
+use super::object::Object;
 use super::object::Spawner;
+use super::object::Tower;
 use super::player::Player;
+use crate::config::CONFIG;
+use crate::game::object::InventoryObject;
 use crate::tile::coordinate::Coordinate;
 use crate::tile::coordinate::RectCoordinate;
 use crate::tile::coordinate::RectDirection;
 use crate::tile::map::Map;
 use crate::tile::map::PositionedObject;
-use crate::game::object::InventoryObject;
-use crate::config::CONFIG;
+use serde::Serialize;
+use zkwasm_rust_sdk::require;
+use zkwasm_rust_sdk::wasm_dbg;
 //use zkwasm_rust_sdk::require;
 
 // The global state
 #[derive(Clone, Serialize)]
 pub struct State {
+    #[serde(skip_serializing)]
     pub id_allocator: u64,
-    pub monston_spawn_counter: u64,
     pub map: Map<RectCoordinate>,
     pub monsters: Vec<PositionedObject<RectCoordinate, Monster>>,
     pub drops: Vec<PositionedObject<RectCoordinate, Dropped>>,
@@ -33,35 +33,60 @@ pub struct State {
 }
 
 impl State {
-    pub fn place_spawner_at(&mut self, object: Spawner, position: RectCoordinate) -> &PositionedObject<RectCoordinate, Spawner> {
+    pub fn place_spawner_at(
+        &mut self,
+        object: Spawner,
+        position: RectCoordinate,
+    ) -> &PositionedObject<RectCoordinate, Spawner> {
         self.id_allocator += 1;
-        self.spawners.push(PositionedObject::new(object, position, self.id_allocator));
+        self.spawners
+            .push(PositionedObject::new(object, position, self.id_allocator));
         self.spawners.get(self.spawners.len() - 1).unwrap()
     }
 
-    pub fn place_collector_at(&mut self, object: Collector, position: RectCoordinate) -> &PositionedObject<RectCoordinate, Collector> {
+    pub fn place_collector_at(
+        &mut self,
+        object: Collector,
+        position: RectCoordinate,
+    ) -> &PositionedObject<RectCoordinate, Collector> {
         self.id_allocator += 1;
-        self.collectors.push(PositionedObject::new(object, position, self.id_allocator));
+        self.collectors
+            .push(PositionedObject::new(object, position, self.id_allocator));
         self.collectors.get(self.collectors.len() - 1).unwrap()
     }
 
-    pub fn place_tower_at(&mut self, object: InventoryObject, position: RectCoordinate) -> &PositionedObject<RectCoordinate, InventoryObject> {
-        unsafe {require(self.map.get_occupy(&position) != 0);}
+    pub fn place_tower_at(
+        &mut self,
+        object: InventoryObject,
+        position: RectCoordinate,
+    ) -> &PositionedObject<RectCoordinate, InventoryObject> {
+        unsafe {
+            require(self.map.get_occupy(&position) != 0);
+        }
         self.id_allocator += 1;
         self.map.set_occupy(&position, 1);
-        self.towers.push(PositionedObject::new(object, position, self.id_allocator));
+        self.towers
+            .push(PositionedObject::new(object, position, self.id_allocator));
         self.towers.get(self.towers.len() - 1).unwrap()
     }
 
-    pub fn remove_tower_at(&mut self, index: usize) -> PositionedObject<RectCoordinate, InventoryObject> {
+    pub fn remove_tower_at(
+        &mut self,
+        index: usize,
+    ) -> PositionedObject<RectCoordinate, InventoryObject> {
         let tower = self.towers[index].clone();
         self.map.set_occupy(&tower.position, 1);
         self.towers.swap_remove(index)
     }
 
-    pub fn spawn_monster_at(&mut self, object: Monster, position: RectCoordinate) -> &PositionedObject<RectCoordinate, Monster> {
+    pub fn spawn_monster_at(
+        &mut self,
+        object: Monster,
+        position: RectCoordinate,
+    ) -> &PositionedObject<RectCoordinate, Monster> {
         self.id_allocator += 1;
-        self.monsters.push(PositionedObject::new(object, position, self.id_allocator));
+        self.monsters
+            .push(PositionedObject::new(object, position, self.id_allocator));
         self.monsters.get(self.monsters.len() - 1).unwrap()
     }
 
@@ -69,9 +94,14 @@ impl State {
         self.monsters.swap_remove(index)
     }
 
-    pub fn spawn_dropped_at(&mut self, object: Dropped, position: RectCoordinate) -> &PositionedObject<RectCoordinate, Monster> {
+    pub fn spawn_dropped_at(
+        &mut self,
+        object: Dropped,
+        position: RectCoordinate,
+    ) -> &PositionedObject<RectCoordinate, Monster> {
         self.id_allocator += 1;
-        self.drops.push(PositionedObject::new(object, position, self.id_allocator));
+        self.drops
+            .push(PositionedObject::new(object, position, self.id_allocator));
         self.monsters.get(self.monsters.len() - 1).unwrap()
     }
 
@@ -83,7 +113,7 @@ impl State {
         match obj.object {
             Object::Monster(m) => self.spawn_monster_at(m, obj.position),
             Object::Dropped(d) => self.spawn_dropped_at(d, obj.position),
-            _ => unreachable!()
+            _ => unreachable!(),
         };
     }
 }
@@ -92,8 +122,7 @@ pub fn handle_place_tower(iid: &[u64; 4], pos: usize) {
     let global = unsafe { &mut crate::config::GLOBAL };
     let inventory_obj = InventoryObject::get(iid);
     let position = global.map.coordinate_of_tile_index(pos);
-    global
-        .place_tower_at(inventory_obj.unwrap(), position);
+    global.place_tower_at(inventory_obj.unwrap(), position);
 }
 
 pub fn handle_update_inventory(iid: &[u64; 4], feature: u64, pid: &[u64; 4]) {
@@ -110,7 +139,6 @@ pub fn handle_update_inventory(iid: &[u64; 4], feature: u64, pid: &[u64; 4]) {
         let inventory_obj = InventoryObject::new(iid.clone(), Object::Tower(tower), 10);
         inventory_obj.store();
     }
-
 }
 
 pub fn handle_claim_tower(iid: &[u64; 4], pid: &[u64; 4]) {
@@ -122,26 +150,25 @@ pub fn handle_claim_tower(iid: &[u64; 4], pid: &[u64; 4]) {
         let obj = inventory_obj.unwrap().object.clone();
         let tower = obj.get_the_tower();
         unsafe {
-            zkwasm_rust_sdk::require (tower.owner[0] == pid[1]);
-            zkwasm_rust_sdk::require (tower.owner[1] == pid[2]);
+            zkwasm_rust_sdk::require(tower.owner[0] == pid[1]);
+            zkwasm_rust_sdk::require(tower.owner[1] == pid[2]);
         }
         if !player.owns(iid[0]) {
             player.inventory.push(iid[0]);
             player.store()
         }
     }
-
 }
 
 pub fn handle_drop_tower(iid: &[u64; 4]) {
     let global = unsafe { &mut crate::config::GLOBAL };
-    //let inventory_obj = InventoryObject::get(iid); 
-    let pos = global.towers.iter().position(|x| {
-        x.object.object_id == *iid
-    });
+    //let inventory_obj = InventoryObject::get(iid);
+    let pos = global
+        .towers
+        .iter()
+        .position(|x| x.object.object_id == *iid);
     if let Some(index) = pos {
-        global
-            .remove_tower_at(index);
+        global.remove_tower_at(index);
     }
 }
 
@@ -168,11 +195,12 @@ impl State {
         // figureout all the collectors in the state
         for obj in self.collectors.iter() {
             collector.push(obj.position.clone())
-        };
+        }
         let mut termination_monster = vec![];
         let mut termination_drop = vec![];
         let mut spawn = vec![];
-        let mut tower_range: Vec<(Tower<RectDirection>, RectCoordinate, usize, usize, usize)> = vec![];
+        let mut tower_range: Vec<(Tower<RectDirection>, RectCoordinate, usize, usize, usize)> =
+            vec![];
 
         for (index, obj) in self.monsters.iter_mut().enumerate() {
             //let m = &obj.object;
@@ -186,7 +214,7 @@ impl State {
                     obj.position = obj.position.adjacent(f)
                 }
             }
-        };
+        }
 
         for (index, obj) in self.drops.iter_mut().enumerate() {
             //let dropped = &obj.object;
@@ -208,7 +236,11 @@ impl State {
             if spawner.count == 0 {
                 let inner_obj = Object::Monster(Monster::new(10, 1, 1));
                 self.id_allocator += 1;
-                spawn.push(PositionedObject::new(inner_obj, obj.position.clone(), self.id_allocator));
+                spawn.push(PositionedObject::new(
+                    inner_obj,
+                    obj.position.clone(),
+                    self.id_allocator,
+                ));
                 spawner.count = spawner.rate
             } else {
                 spawner.count -= 1
@@ -220,12 +252,12 @@ impl State {
             if let Object::Tower(tower) = &mut obj.object.object {
                 if tower.count == 0 {
                     tower_range.push((
-                            tower.clone(),
-                            obj.position.clone(),
-                            usize::max_value(),
-                            index,
-                            usize::max_value(),
-                            ));
+                        tower.clone(),
+                        obj.position.clone(),
+                        usize::max_value(),
+                        index,
+                        usize::max_value(),
+                    ));
                 } else {
                     tower.count -= 1;
                 }
@@ -257,16 +289,21 @@ impl State {
                     termination_monster.push(t.4);
                     self.id_allocator += 1;
                     spawn.push(PositionedObject::new(
-                            Object::Dropped(Dropped::new(10)),
-                            self.monsters[t.4].position.clone(),
-                            self.id_allocator,
-                            ));
+                        Object::Dropped(Dropped::new(10)),
+                        self.monsters[t.4].position.clone(),
+                        self.id_allocator,
+                    ));
                 }
-                events.push(Event::Attack(t.1.repr(), self.monsters[t.4].position.repr(), 0));
+                events.push(Event::Attack(
+                    t.1.repr(),
+                    self.monsters[t.4].position.repr(),
+                    0,
+                ));
                 if let Object::Tower(tower) = &mut self.towers[t.3].object.object {
                     tower.count = tower.cooldown;
                 }
                 self.towers[t.3].object.reward += 1; // hit reward
+                self.towers[t.3].object.store();
             }
         }
 

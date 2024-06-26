@@ -1,9 +1,11 @@
 use super::coordinate::Coordinate;
 use super::coordinate::Tile;
+use crate::game::bigint_serializer;
 use serde::Serialize;
 
 #[derive(Clone, Serialize)]
 pub struct PositionedObject<C: Coordinate, Object: Clone> {
+    #[serde(serialize_with = "bigint_serializer")]
     pub id: u64, // unique id in the map
     pub position: C,
     pub object: Object,
@@ -27,11 +29,7 @@ pub struct Map<C: Coordinate> {
 }
 
 impl<C: Coordinate> Map<C> {
-    pub fn new(
-        width: usize,
-        height: usize,
-        tiles: Vec<Tile<C, Option<C::Direction>>>,
-    ) -> Self {
+    pub fn new(width: usize, height: usize, tiles: Vec<Tile<C, Option<C::Direction>>>) -> Self {
         Map {
             width,
             height,
@@ -56,18 +54,15 @@ impl<C: Coordinate> Map<C> {
         self.tiles.get(index).unwrap().feature.clone()
     }
 
-    pub fn set_occupy(&mut self, cor: &C, indicator: u64) {
+    pub fn set_occupy(&mut self, cor: &C, indicator: u32) {
         let index = self.index_of_tile_coordinate(cor);
         self.tiles.get_mut(index).unwrap().occupied = indicator;
     }
 
-    pub fn get_occupy(&mut self, cor: &C) -> u64 {
+    pub fn get_occupy(&mut self, cor: &C) -> u32 {
         let index = self.index_of_tile_coordinate(cor);
         self.tiles.get_mut(index).unwrap().occupied
     }
-
-
-
 
     /*
     pub fn get_neighbours<O: Clone>(

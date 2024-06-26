@@ -1,15 +1,15 @@
-use zkwasm_rust_sdk::require;
+use crate::game::object::Collector;
+use crate::game::object::Spawner;
 use crate::game::state::State;
 use crate::tile::map::Map;
-use crate::game::object::Spawner;
-use crate::game::object::Collector;
+use zkwasm_rust_sdk::require;
 //use crate::game::object::Dropped;
 //use crate::tile::map::Map;
-use crate::tile::coordinate::Tile;
-use crate::tile::coordinate::RectDirection;
-use crate::tile::coordinate::RectCoordinate;
-use crate::tile::coordinate::Coordinate;
 use crate::game::object::Tower;
+use crate::tile::coordinate::Coordinate;
+use crate::tile::coordinate::RectCoordinate;
+use crate::tile::coordinate::RectDirection;
+use crate::tile::coordinate::Tile;
 use serde::Serialize;
 
 const TOWER_LEVEL: [[u64; 3]; 6] = [
@@ -23,7 +23,7 @@ const TOWER_LEVEL: [[u64; 3]; 6] = [
 
 pub fn build_tower(lvl: u64, dir: RectDirection) -> Tower<RectDirection> {
     let l = TOWER_LEVEL[lvl as usize];
-    Tower::new(lvl, l[0], l[1], l[2], [0,0], dir)
+    Tower::new(lvl, l[0], l[1], l[2], [0, 0], dir)
 }
 
 pub fn upgrade_tower(t: &mut Tower<RectDirection>) {
@@ -38,7 +38,7 @@ pub fn upgrade_tower(t: &mut Tower<RectDirection>) {
 pub const UPGRADE_MODIFIER: u64 = 5;
 pub const UPGRADE_COST_MODIFIER: u64 = 2;
 
-#[derive (Serialize, Clone)]
+#[derive(Serialize, Clone)]
 pub struct Config {
     pub standard_towers: [Tower<RectDirection>; 4],
 }
@@ -64,12 +64,11 @@ lazy_static::lazy_static! {
     };
 }
 
-const WIDTH:usize = 12;
-const HEIGHT:usize= 12;
+const WIDTH: usize = 12;
+const HEIGHT: usize = 12;
 
 pub static mut GLOBAL: State = State {
     id_allocator: 0,
-    monston_spawn_counter: 3,
     map: Map {
         width: WIDTH,
         height: HEIGHT,
@@ -137,23 +136,107 @@ pub fn init_state() {
             .push(Tile::new(RectCoordinate::new(0, 0), None))
     }
     let mut m = 0;
-    em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m);
-    em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
-    em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
-    em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mb!(m); em!(m); em!(m); mt!(m); em!(m);
-    em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); em!(m); mt!(m); em!(m);
-    em!(m); em!(m); em!(m); em!(m); mb!(m); ml!(m); ml!(m); ml!(m); em!(m); em!(m); mt!(m); em!(m);
-    em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
-    em!(m); em!(m); em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    mb!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    mt!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    mb!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    mt!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    mr!(m);
+    mr!(m);
+    mr!(m);
+    mr!(m);
+    mr!(m);
+    mb!(m);
+    em!(m);
+    em!(m);
+    mt!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    mb!(m);
+    em!(m);
+    em!(m);
+    mt!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    mb!(m);
+    ml!(m);
+    ml!(m);
+    ml!(m);
+    em!(m);
+    em!(m);
+    mt!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    mb!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    mt!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    em!(m);
+    mr!(m);
+    mr!(m);
+    mr!(m);
+    mr!(m);
+    mr!(m);
+    mr!(m);
+    mt!(m);
+    em!(m);
 
     if m != WIDTH * HEIGHT - 1 {
         unreachable!();
     }
 
-    global
-        .place_spawner_at(spawner, RectCoordinate::new(4, 0));
-    global
-        .place_collector_at(collector, RectCoordinate::new(10, 0));
+    global.place_spawner_at(spawner, RectCoordinate::new(4, 0));
+    global.place_collector_at(collector, RectCoordinate::new(10, 0));
 }
-
-

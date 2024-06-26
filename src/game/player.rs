@@ -1,15 +1,18 @@
+use crate::game::bigint_array_serializer;
 use serde::Serialize;
 use zkwasm_rest_abi::MERKLE_MAP;
 
 #[derive(Clone, Serialize)]
 pub struct Player {
+    #[serde(skip_serializing)]
     pub player_id: [u64; 4],
+    #[serde(serialize_with = "bigint_array_serializer")]
     pub inventory: Vec<u64>,
 }
 
 impl Player {
     pub fn get(player_id: &[u64; 4]) -> Option<Self> {
-        let kvpair = unsafe {&mut MERKLE_MAP};
+        let kvpair = unsafe { &mut MERKLE_MAP };
         let data = kvpair.get(&player_id);
         if data.is_empty() {
             None
@@ -22,7 +25,7 @@ impl Player {
         }
     }
     pub fn store(&self) {
-        let kvpair = unsafe {&mut MERKLE_MAP};
+        let kvpair = unsafe { &mut MERKLE_MAP };
         kvpair.set(&self.player_id, self.inventory.as_slice());
     }
 
