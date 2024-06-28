@@ -6,7 +6,10 @@ use super::object::Object;
 use super::object::Spawner;
 use super::object::Tower;
 use super::player::Player;
+use crate::config::spawn_monster;
 use crate::config::CONFIG;
+use crate::config::SPWAN_INTERVAL;
+use crate::config::UPGRADE_COST;
 use crate::game::object::InventoryObject;
 use crate::tile::coordinate::Coordinate;
 use crate::tile::coordinate::RectCoordinate;
@@ -175,12 +178,11 @@ pub fn handle_drop_tower(iid: &[u64; 4]) {
 pub fn handle_upgrade_inventory(iid: &[u64; 4]) {
     //let global = unsafe { &mut crate::config::GLOBAL };
     let mut inventory_obj = InventoryObject::get(iid).unwrap();
-    let modifier = inventory_obj.upgrade_modifier;
-    //let upgrade_cost = inventory_obj.cost * modifier;
-    inventory_obj.upgrade_modifier = modifier * modifier;
-    // unsafe { require(inventory_obj.cost <= global.treasure) };
-    inventory_obj.cost *= 4;
-    //global.treasure -= upgrade_cost;
+    let tower = inventory_obj.object.get_the_tower_mut();
+    unsafe {require(tower.lvl < 3)};
+    let cost = UPGRADE_COST[tower.lvl as usize];
+    unsafe {require(inventory_obj.reward >= cost)};
+    inventory_obj.reward -= cost;
     inventory_obj.object.upgrade();
     inventory_obj.store();
 }
@@ -233,17 +235,19 @@ impl State {
 
         for (_index, obj) in self.spawners.iter_mut().enumerate() {
             let spawner = &mut obj.object;
-            if spawner.count == 0 {
-                let inner_obj = Object::Monster(Monster::new(10, 1, 1));
+            if spawner.rate == 0 {
+                spawner.count += 1;
+                let monster = spawn_monster(spawner.count);
+                let inner_obj = Object::Monster(monster);
                 self.id_allocator += 1;
                 spawn.push(PositionedObject::new(
                     inner_obj,
                     obj.position.clone(),
                     self.id_allocator,
                 ));
-                spawner.count = spawner.rate
+                spawner.rate = SPWAN_INTERVAL;
             } else {
-                spawner.count -= 1
+                spawner.rate -= 1
             }
             // TODO fill object spawner
         }
@@ -279,13 +283,14 @@ impl State {
         for t in tower_range.iter_mut() {
             if t.4 != usize::max_value() {
                 let m = &mut self.monsters[t.4].object;
+                let hit_reward = m.hit;
                 if m.hp < t.0.power {
                     m.hp = 0;
                 } else {
                     m.hp -= t.0.power;
                 }
                 if m.hp == 0 {
-                    self.towers[t.3].object.reward += m.hp; // kill reward
+                    self.towers[t.3].object.reward += m.kill; // kill reward
                     termination_monster.push(t.4);
                     self.id_allocator += 1;
                     spawn.push(PositionedObject::new(
@@ -302,7 +307,7 @@ impl State {
                 if let Object::Tower(tower) = &mut self.towers[t.3].object.object {
                     tower.count = tower.cooldown;
                 }
-                self.towers[t.3].object.reward += 1; // hit reward
+                self.towers[t.3].object.reward += hit_reward; // hit reward
                 self.towers[t.3].object.store();
             }
         }

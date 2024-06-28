@@ -1,4 +1,6 @@
+#![allow(unused_macros)]
 use crate::game::object::Collector;
+use crate::game::object::Monster;
 use crate::game::object::Spawner;
 use crate::game::state::State;
 use crate::tile::map::Map;
@@ -12,14 +14,31 @@ use crate::tile::coordinate::RectDirection;
 use crate::tile::coordinate::Tile;
 use serde::Serialize;
 
-const TOWER_LEVEL: [[u64; 3]; 6] = [
-    [5, 2, 4],
-    [5, 3, 4],
-    [5, 4, 4],
-    [5, 5, 4],
-    [5, 6, 3],
-    [5, 7, 2],
+pub const SPWAN_INTERVAL:u64 = 3;
+
+const MONSTER_LEVEL: [[u64; 3]; 3] = [
+    [30, 1, 2],
+    [30, 1, 10],
+    [30, 1, 50],
 ];
+
+const TOWER_LEVEL: [[u64; 3]; 3] = [
+    [3, 1, 3],
+    [5, 3, 2],
+    [7, 10, 1],
+];
+
+pub const UPGRADE_COST: [u64; 2] = [1500, 8000];
+
+pub fn spawn_monster(count: u64) -> Monster {
+    if count % 10 == 0 {
+        Monster::new(MONSTER_LEVEL[2][0], MONSTER_LEVEL[2][1], MONSTER_LEVEL[2][2])
+    } else if count % 3 == 0 {
+        Monster::new(MONSTER_LEVEL[1][0], MONSTER_LEVEL[1][1], MONSTER_LEVEL[1][2])
+    } else {
+        Monster::new(MONSTER_LEVEL[0][0], MONSTER_LEVEL[0][1], MONSTER_LEVEL[0][2])
+    }
+}
 
 pub fn build_tower(lvl: u64, dir: RectDirection) -> Tower<RectDirection> {
     let l = TOWER_LEVEL[lvl as usize];
@@ -65,7 +84,7 @@ lazy_static::lazy_static! {
 }
 
 const WIDTH: usize = 12;
-const HEIGHT: usize = 12;
+const HEIGHT: usize = 8;
 
 pub static mut GLOBAL: State = State {
     id_allocator: 0,
@@ -82,9 +101,66 @@ pub static mut GLOBAL: State = State {
     events: vec![],
 };
 
-fn cor_to_index(x: usize, y: usize) -> usize {
+pub fn cor_to_index(x: usize, y: usize) -> usize {
     x + y * WIDTH
 }
+
+macro_rules! pb {
+    ($idx: ident) => {
+        let global = unsafe { &mut GLOBAL };
+        let spawner = Spawner::new(0, 3);
+        let cor = global.map.coordinate_of_tile_index($idx);
+        global.place_spawner_at(spawner, cor);
+        global.map.set_feature($idx, Some(RectDirection::Bottom));
+        $idx += 1;
+    };
+}
+
+macro_rules! pt {
+    ($idx: ident) => {
+        let global = unsafe { &mut GLOBAL };
+        let spawner = Spawner::new(0, 3);
+        let cor = Map::coordinate_of_tile_index($idx);
+        global.place_spawner_at(spawner, cor);
+        global.map.set_feature($idx, Some(RectDirection::Top));
+        $idx += 1;
+    };
+}
+
+macro_rules! pl {
+    ($idx: ident) => {
+        let global = unsafe { &mut GLOBAL };
+        let spawner = Spawner::new(0, 3);
+        let cor = Map::coordinate_of_tile_index($idx);
+        global.place_spawner_at(spawner, cor);
+        global.map.set_feature($idx, Some(RectDirection::Left));
+        $idx += 1;
+    };
+}
+
+macro_rules! pr {
+    ($idx: ident) => {
+        let global = unsafe { &mut GLOBAL };
+        let spawner = Spawner::new(0, 3);
+        let cor = Map::coordinate_of_tile_index($idx);
+        global.place_spawner_at(spawner, cor);
+        global.map.set_feature($idx, Some(RectDirection::Right));
+        $idx += 1;
+    };
+}
+
+
+macro_rules! pc {
+    ($idx: ident) => {
+        let global = unsafe { &mut GLOBAL };
+        let collector = Collector::new(5);
+        let cor = global.map.coordinate_of_tile_index($idx);
+        global.place_collector_at(collector, cor);
+        $idx += 1;
+    };
+}
+
+
 
 macro_rules! mb {
     ($idx: ident) => {
@@ -127,8 +203,6 @@ macro_rules! em {
 
 pub fn init_state() {
     let global = unsafe { &mut GLOBAL };
-    let spawner = Spawner::new(4, 4);
-    let collector = Collector::new(5);
     for _ in 0..96 {
         global
             .map
@@ -136,107 +210,19 @@ pub fn init_state() {
             .push(Tile::new(RectCoordinate::new(0, 0), None))
     }
     let mut m = 0;
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    mb!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    mt!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    mb!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    mt!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    mr!(m);
-    mr!(m);
-    mr!(m);
-    mr!(m);
-    mr!(m);
-    mb!(m);
-    em!(m);
-    em!(m);
-    mt!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    mb!(m);
-    em!(m);
-    em!(m);
-    mt!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    mb!(m);
-    ml!(m);
-    ml!(m);
-    ml!(m);
-    em!(m);
-    em!(m);
-    mt!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    mb!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    mt!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    em!(m);
-    mr!(m);
-    mr!(m);
-    mr!(m);
-    mr!(m);
-    mr!(m);
-    mr!(m);
-    mt!(m);
-    em!(m);
+    zkwasm_rust_sdk::dbg!("m is {}\n", m);
+    em!(m); em!(m); pb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); pc!(m); em!(m);
+    em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
+    em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
+    em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mb!(m); em!(m); em!(m); mt!(m); em!(m);
+    em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); em!(m); mt!(m); em!(m);
+    em!(m); em!(m); em!(m); em!(m); mb!(m); ml!(m); ml!(m); ml!(m); em!(m); em!(m); mt!(m); em!(m);
+    em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
+    em!(m); em!(m); em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m);
 
-    if m != WIDTH * HEIGHT - 1 {
+    zkwasm_rust_sdk::dbg!("m is {}\n", m);
+
+    if m != WIDTH * HEIGHT {
         unreachable!();
     }
-
-    global.place_spawner_at(spawner, RectCoordinate::new(4, 0));
-    global.place_collector_at(collector, RectCoordinate::new(10, 0));
 }

@@ -12,25 +12,25 @@ use crate::{
 #[derive(Clone, Serialize)]
 pub struct Monster {
     pub hp: u64,
-    pub range: u64,
-    pub power: u64,
+    pub hit: u64,
+    pub kill: u64,
 }
 
 impl Monster {
-    pub fn new(hp: u64, range: u64, power: u64) -> Self {
-        Monster { hp, range, power }
+    pub fn new(hp: u64, hit: u64, kill: u64) -> Self {
+        Monster { hp, hit, kill}
     }
 }
 
 impl U64arraySerialize for Monster {
     fn to_u64_array(&self) -> Vec<u64> {
-        vec![self.hp, self.range, self.power]
+        vec![self.hp, self.hit, self.kill]
     }
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
         Monster {
             hp: *(data.next().unwrap()),
-            range: *data.next().unwrap(),
-            power: *data.next().unwrap(),
+            hit: *data.next().unwrap(),
+            kill: *data.next().unwrap(),
         }
     }
 }
