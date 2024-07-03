@@ -229,10 +229,10 @@ impl U64arraySerialize for Object<RectDirection> {
         let t: u64 = *(data.next().unwrap());
         match t {
             0 => Object::Monster(Monster::from_u64_array(data)),
-            1 => Object::Monster(Monster::from_u64_array(data)),
-            2 => Object::Monster(Monster::from_u64_array(data)),
-            3 => Object::Monster(Monster::from_u64_array(data)),
-            4 => Object::Monster(Monster::from_u64_array(data)),
+            1 => Object::Tower(Tower::from_u64_array(data)),
+            2 => Object::Spawner(Spawner::from_u64_array(data)),
+            3 => Object::Dropped(Dropped::from_u64_array(data)),
+            4 => Object::Collector(Collector::from_u64_array(data)),
             _ => unreachable!(),
         }
     }
