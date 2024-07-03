@@ -41,6 +41,7 @@ impl State {
         object: Spawner,
         position: RectCoordinate,
     ) -> &PositionedObject<RectCoordinate, Spawner> {
+        self.map.set_occupy(&position, 1);
         self.id_allocator += 1;
         self.spawners
             .push(PositionedObject::new(object, position, self.id_allocator));
@@ -52,6 +53,7 @@ impl State {
         object: Collector,
         position: RectCoordinate,
     ) -> &PositionedObject<RectCoordinate, Collector> {
+        self.map.set_occupy(&position, 1);
         self.id_allocator += 1;
         self.collectors
             .push(PositionedObject::new(object, position, self.id_allocator));
@@ -64,7 +66,7 @@ impl State {
         position: RectCoordinate,
     ) -> &PositionedObject<RectCoordinate, InventoryObject> {
         unsafe {
-            require(self.map.get_occupy(&position) != 0);
+            require(self.map.get_occupy(&position) == 0);
         }
         self.id_allocator += 1;
         self.map.set_occupy(&position, 1);
@@ -78,7 +80,7 @@ impl State {
         index: usize,
     ) -> PositionedObject<RectCoordinate, InventoryObject> {
         let tower = self.towers[index].clone();
-        self.map.set_occupy(&tower.position, 1);
+        self.map.set_occupy(&tower.position, 0);
         self.towers.swap_remove(index)
     }
 

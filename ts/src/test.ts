@@ -34,8 +34,8 @@ async function mintTower() {
 async function main() {
   //sending_transaction([0n,0n,0n,0n], "1234");
   let towerId = 0n;
-  let x = 1n;
-  let y = 1n;
+  let x = 0n;
+  let y = 0n;
   rpc.query_state([1n], account);
   rpc.query_config();
 
@@ -44,7 +44,7 @@ async function main() {
   let pos = x<<32n + y;
   rpc.send_transaction([CMD_MINT_TOWER, towerId, accountInfo[1], accountInfo[2]], account);
   rpc.send_transaction([CMD_CLAIM_TOWER, towerId, 0n, 0n], account);
-  //rpc.send_transaction([CMD_PLACE_TOWER, towerId, pos, 0n], account);
+  rpc.send_transaction([CMD_PLACE_TOWER, towerId, pos, 0n], account);
 }
 
 main();
