@@ -146,7 +146,6 @@ pub fn handle_update_inventory(iid: &[u64; 4], feature: u64, pid: &[u64; 4]) {
 
 pub fn handle_claim_tower(iid: &[u64; 4], pid: &[u64; 4]) {
     let inventory_obj = InventoryObject::get(iid);
-    let mut player = Player::get(pid).unwrap();
     if inventory_obj.is_none() {
         unreachable!()
     } else {
@@ -156,8 +155,18 @@ pub fn handle_claim_tower(iid: &[u64; 4], pid: &[u64; 4]) {
             zkwasm_rust_sdk::require(tower.owner[0] == pid[1]);
             zkwasm_rust_sdk::require(tower.owner[1] == pid[2]);
         }
-        if !player.owns(iid[0]) {
-            player.inventory.push(iid[0]);
+
+        let mut player_opt = Player::get(pid);
+        if let Some(player) = player_opt.as_mut() {
+            if !player.owns(iid[0]) {
+                player.inventory.push(iid[0]);
+                player.store()
+            }
+        } else {
+            let player = Player {
+                player_id: *pid,
+                inventory: vec![iid[0]],
+            };
             player.store()
         }
     }

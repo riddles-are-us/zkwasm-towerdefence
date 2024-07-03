@@ -1,7 +1,6 @@
 //import initHostBind, * as hostbind from "./wasmbind/hostbind.js";
-import { verify_sign, LeHexBN } from "./sign.js";
+import { query, verify_sign, LeHexBN } from "./sign.js";
 import { ZKWasmAppRpc } from "./rpc.js";
-import {PrivateKey} from "delphinus-curves/src/altjubjub.js";
 
 const msgHash = new LeHexBN("0xb8f4201833cfcb9dffdd8cf875d6e1328d99b683e8373617a63f41d436a19f7c");
 const pkx = new LeHexBN("0x7137da164bacaa9332b307e25c1abd906c5c240dcb27e520b84522a1674aab01");
@@ -12,15 +11,6 @@ const sigr = new LeHexBN("0x1e900bb388808fe40f0a11a149a322f576448d497040d72c7b3e
 
 let checksign = verify_sign(msgHash, pkx, pky, sigx, sigy, sigr);
 console.log("checking signature ...", checksign);
-
-/* The modifier mush less than eight */
-function encode_modifier(modifiers: Array<bigint>) {
-  let c = 0n;
-  for (const m of modifiers) {
-    c = (c << 8n) + m;
-  }
-  return c;
-}
 
 const CMD_PLACE_TOWER = 1n;
 const CMD_CLAIM_TOWER = 2n;
@@ -34,9 +24,8 @@ function createCommand(command: bigint, objindex: bigint) {
 
 let account = "1234";
 
-let pkey = PrivateKey.fromString(account);
-
-const rpc = new ZKWasmAppRpc("http://localhost:3000");
+//const rpc = new ZKWasmAppRpc("http://localhost:3000");
+const rpc = new ZKWasmAppRpc("http://114.119.187.224:8085");
 
 async function mintTower() {
 }
@@ -45,14 +34,17 @@ async function mintTower() {
 async function main() {
   //sending_transaction([0n,0n,0n,0n], "1234");
   let towerId = 0n;
-  let x = 0n;
-  let y = 0n;
-  let pos = x<<32n + y;
-  rpc.send_transaction([CMD_MINT_TOWER, towerId, 0n, 0n], account);
-  rpc.send_transaction([CMD_CLAIM_TOWER, towerId, 0n, 0n], account);
+  let x = 1n;
+  let y = 1n;
   rpc.query_state([1n], account);
   rpc.query_config();
-  rpc.send_transaction([CMD_PLACE_TOWER, towerId, pos, 0n], account);
+
+  let accountInfo = new LeHexBN(query(account).pkx).toU64Array();
+  console.log("account info:", accountInfo);
+  let pos = x<<32n + y;
+  rpc.send_transaction([CMD_MINT_TOWER, towerId, accountInfo[1], accountInfo[2]], account);
+  rpc.send_transaction([CMD_CLAIM_TOWER, towerId, 0n, 0n], account);
+  //rpc.send_transaction([CMD_PLACE_TOWER, towerId, pos, 0n], account);
 }
 
 main();
