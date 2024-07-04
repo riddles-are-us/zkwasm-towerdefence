@@ -1,5 +1,12 @@
 # towerdefence-demo
 
+## Nounce Convention
+Allo command is composed of 3 parts
+
+[0-8) bits are command number.
+[8-16) bits are supplement attributes (Eg. Tower features).
+[16-64) bits are nounce.
+
 ## API conventions
 Step:
 [command = 0, reserved = 0, reserved = 0, reserved = 0]

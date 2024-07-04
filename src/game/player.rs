@@ -6,6 +6,7 @@ use zkwasm_rest_abi::MERKLE_MAP;
 pub struct Player {
     #[serde(skip_serializing)]
     pub player_id: [u64; 4],
+    pub nonce: u64,
     #[serde(serialize_with = "bigint_array_serializer")]
     pub inventory: Vec<u64>,
 }
@@ -13,12 +14,14 @@ pub struct Player {
 impl Player {
     pub fn get(player_id: &[u64; 4]) -> Option<Self> {
         let kvpair = unsafe { &mut MERKLE_MAP };
-        let data = kvpair.get(&player_id);
+        let mut data = kvpair.get(&player_id);
         if data.is_empty() {
             None
         } else {
+            let nonce = data.pop().unwrap();
             let player = Player {
                 player_id: player_id.clone(),
+                nonce,
                 inventory: data,
             };
             Some(player)
@@ -26,7 +29,14 @@ impl Player {
     }
     pub fn store(&self) {
         let kvpair = unsafe { &mut MERKLE_MAP };
-        kvpair.set(&self.player_id, self.inventory.as_slice());
+        let mut c = self.inventory.clone();
+        c.push(self.nonce);
+        kvpair.set(&self.player_id, c.as_slice());
+    }
+
+    pub fn check_and_inc_nonce(&mut self, nonce: u64) {
+        unsafe {zkwasm_rust_sdk::require(self.nonce == nonce)};
+        self.nonce += 1;
     }
 
     pub fn owns(&self, tower_id: u64) -> bool {

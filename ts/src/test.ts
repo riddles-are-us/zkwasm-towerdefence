@@ -18,8 +18,8 @@ const CMD_MINT_TOWER = 3n;
 const CMD_DROP_TOWER = 4n;
 const CMD_UPGRADE_TOWER = 4n;
 
-function createCommand(command: bigint, objindex: bigint) {
-  return (command << 32n) + objindex;
+function createCommand(nonce: bigint, command: bigint, feature: bigint) {
+  return (nonce << 48n) + (feature << 8n) + command;
 }
 
 let account = "1234";
@@ -36,15 +36,20 @@ async function main() {
   let towerId = 0n;
   let x = 0n;
   let y = 0n;
-  rpc.query_state([1n], account);
+  let state = rpc.query_state([1n], account);
   rpc.query_config();
+
+  let nonce = 0n;
+  if (state.player) {
+    nonce = state.player.nonce;
+  }
 
   let accountInfo = new LeHexBN(query(account).pkx).toU64Array();
   console.log("account info:", accountInfo);
   let pos = x<<32n + y;
-  rpc.send_transaction([CMD_MINT_TOWER, towerId, accountInfo[1], accountInfo[2]], account);
-  rpc.send_transaction([CMD_CLAIM_TOWER, towerId, 0n, 0n], account);
-  rpc.send_transaction([CMD_PLACE_TOWER, towerId, pos, 0n], account);
+  rpc.send_transaction([createCommand(nonce, CMD_MINT_TOWER, 0n), towerId, accountInfo[1], accountInfo[2]], account);
+  rpc.send_transaction([createCommand(nonce, CMD_CLAIM_TOWER, 0n), towerId, 0n, 0n], account);
+  rpc.send_transaction([createCommand(nonce, CMD_PLACE_TOWER, 0n), towerId, pos, 0n], account);
 }
 
 main();

@@ -43,9 +43,10 @@ export class ZKWasmAppRpc {
     if (response.ok) {
       const jsonResponse = response.json();
       console.log(jsonResponse);
+      return jsonResponse;
     } else {
-      console.log(response);
       console.error('Failed to fetch:', response.statusText);
+      throw(`QueryStateError: ${response.statusText}`);
     }
   }
 
