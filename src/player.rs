@@ -27,6 +27,25 @@ impl Player {
             Some(player)
         }
     }
+    pub fn get_and_check_nonce(player_id: &[u64; 4], nonce: u64) -> Self {
+        let player_opt = Player::get(player_id);
+        match player_opt {
+            None => {
+                unsafe {zkwasm_rust_sdk::require(nonce == 0)};
+                let player = Player {
+                    nonce,
+                    player_id: *player_id,
+                    inventory: vec![],
+                };
+                player.store();
+                player
+            },
+            Some (mut player) => {
+                player.check_and_inc_nonce(nonce);
+                player
+            }
+        }
+    }
     pub fn store(&self) {
         let kvpair = unsafe { &mut MERKLE_MAP };
         let mut c = self.inventory.clone();

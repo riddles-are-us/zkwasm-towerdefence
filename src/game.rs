@@ -1,5 +1,5 @@
 use crate::config::init_state;
-use player::Player;
+use crate::player::Player;
 use serde::{ser::SerializeSeq, Serialize, Serializer};
 use zkwasm_rust_sdk::require;
 use zkwasm_rust_sdk::wasm_dbg;
@@ -26,7 +26,6 @@ where
 
 pub mod event;
 pub mod object;
-pub mod player;
 pub mod serialize;
 pub mod state;
 
@@ -53,7 +52,7 @@ pub fn handle_command(commands: &[u64; 4], pid: &[u64; 4]) {
     if command == CMD_RUN {
         unsafe { crate::config::GLOBAL.run() };
     } else if command == CMD_PLACE_TOWER {
-        let mut player = player::Player::get(pid).unwrap();
+        let mut player = Player::get(pid).unwrap();
         let objindex = commands[1];
         player.check_and_inc_nonce(nonce);
         unsafe { require(player.owns(objindex)) };
@@ -62,24 +61,22 @@ pub fn handle_command(commands: &[u64; 4], pid: &[u64; 4]) {
         state::handle_place_tower(&to_full_obj_id(objindex), pos as usize);
         player.store();
     } else if command == CMD_UPGRADE_TOWER {
-        let mut player = player::Player::get(pid).unwrap();
+        let mut player = Player::get(pid).unwrap();
         player.check_and_inc_nonce(nonce);
         let objindex = commands[1];
         unsafe { require(player.owns(objindex)) };
         state::handle_upgrade_inventory(&to_full_obj_id(objindex));
         player.store();
     } else if command == CMD_MINT_TOWER {
-        let mut player = player::Player::get(pid).unwrap();
-        player.check_and_inc_nonce(nonce);
+        Player::get_and_check_nonce(pid, nonce);
         let objindex = commands[1];
         let pid = [0, commands[2], commands[3], 0]; // 128bit security strength
         state::handle_update_inventory(&to_full_obj_id(objindex), feature, &pid);
-        player.store();
     } else if command == CMD_CLAIM_TOWER {
         let objindex = commands[1];
         state::handle_claim_tower(nonce, &to_full_obj_id(objindex), pid);
     } else if commands[0] == CMD_DROP_TOWER {
-        let mut player = player::Player::get(pid).unwrap();
+        let mut player = Player::get(pid).unwrap();
         player.check_and_inc_nonce(nonce);
         let inventory_index = commands[1];
         unsafe {

@@ -38,18 +38,6 @@ async function main() {
   let y = 0n;
   let state = rpc.query_state([1n], account);
   rpc.query_config();
-
-  let nonce = 0n;
-  if (state.player) {
-    nonce = state.player.nonce;
-  }
-
-  let accountInfo = new LeHexBN(query(account).pkx).toU64Array();
-  console.log("account info:", accountInfo);
-  let pos = x<<32n + y;
-  rpc.send_transaction([createCommand(nonce, CMD_MINT_TOWER, 0n), towerId, accountInfo[1], accountInfo[2]], account);
-  rpc.send_transaction([createCommand(nonce, CMD_CLAIM_TOWER, 0n), towerId, 0n, 0n], account);
-  rpc.send_transaction([createCommand(nonce, CMD_PLACE_TOWER, 0n), towerId, pos, 0n], account);
 }
 
 main();

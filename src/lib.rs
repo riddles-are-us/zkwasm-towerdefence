@@ -2,6 +2,7 @@ use wasm_bindgen::prelude::*;
 use zkwasm_rest_abi::*;
 pub mod config;
 pub mod game;
+pub mod player;
 pub mod settlement;
 pub mod tile;
 pub mod tx;

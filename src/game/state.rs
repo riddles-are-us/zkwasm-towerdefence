@@ -5,7 +5,7 @@ use super::object::Monster;
 use super::object::Object;
 use super::object::Spawner;
 use super::object::Tower;
-use super::player::Player;
+use crate::player::Player;
 use crate::config::spawn_monster;
 use crate::config::CONFIG;
 use crate::config::SPWAN_INTERVAL;
@@ -226,7 +226,7 @@ impl State {
                 let index = self.map.index_of_tile_coordinate(&obj.position);
                 let feature = self.map.get_feature(index);
                 if let Some(f) = feature {
-                    unsafe { wasm_dbg(f.clone() as u64) };
+                    //unsafe { wasm_dbg(f.clone() as u64) };
                     obj.position = obj.position.adjacent(f)
                 }
             }
@@ -241,7 +241,7 @@ impl State {
                 let index = self.map.index_of_tile_coordinate(&obj.position);
                 let feature = self.map.get_feature(index);
                 if let Some(f) = feature {
-                    unsafe { wasm_dbg(f.clone() as u64) };
+                    //unsafe { wasm_dbg(f.clone() as u64) };
                     obj.position = obj.position.adjacent(f)
                 }
             }
