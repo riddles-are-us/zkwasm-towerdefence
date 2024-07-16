@@ -1,65 +1,55 @@
 use crate::game::bigint_array_serializer;
+use crate::StorageData;
+use crate::Player;
 use serde::Serialize;
-use zkwasm_rest_abi::MERKLE_MAP;
+use core::slice::IterMut;
 
 #[derive(Clone, Serialize)]
-pub struct Player {
-    #[serde(skip_serializing)]
-    pub player_id: [u64; 4],
-    pub nonce: u64,
+pub struct PlayerData {
     #[serde(serialize_with = "bigint_array_serializer")]
     pub inventory: Vec<u64>,
 }
 
-impl Player {
-    pub fn get(player_id: &[u64; 4]) -> Option<Self> {
-        let kvpair = unsafe { &mut MERKLE_MAP };
-        let mut data = kvpair.get(&player_id);
-        if data.is_empty() {
-            None
-        } else {
-            let nonce = data.pop().unwrap();
-            let player = Player {
-                player_id: player_id.clone(),
-                nonce,
-                inventory: data,
-            };
-            Some(player)
+impl Default for PlayerData {
+    fn default() -> Self {
+        Self {
+            inventory: vec![],
         }
     }
-    pub fn get_and_check_nonce(player_id: &[u64; 4], nonce: u64) -> Self {
-        let player_opt = Player::get(player_id);
-        match player_opt {
-            None => {
-                unsafe {zkwasm_rust_sdk::require(nonce == 0)};
-                let player = Player {
-                    nonce,
-                    player_id: *player_id,
-                    inventory: vec![],
-                };
-                player.store();
-                player
-            },
-            Some (mut player) => {
-                player.check_and_inc_nonce(nonce);
-                player
-            }
+}
+
+impl StorageData for PlayerData {
+    fn from_data(u64data: &mut IterMut<u64>) -> Self {
+        let objects_size = *u64data.next().unwrap();
+        let mut inventory = Vec::with_capacity(objects_size as usize);
+        for _ in 0..objects_size {
+            inventory.push(*u64data.next().unwrap());
+        }
+        PlayerData {
+            inventory,
         }
     }
-    pub fn store(&self) {
-        let kvpair = unsafe { &mut MERKLE_MAP };
-        let mut c = self.inventory.clone();
-        c.push(self.nonce);
-        kvpair.set(&self.player_id, c.as_slice());
+    fn to_data(&self, data: &mut Vec<u64>) {
+        data.push(self.inventory.len() as u64);
+        for c in self.inventory.iter() {
+            data.push(*c as u64);
+        }
     }
+}
 
-    pub fn check_and_inc_nonce(&mut self, nonce: u64) {
-        unsafe {zkwasm_rust_sdk::require(self.nonce == nonce)};
-        self.nonce += 1;
+pub type TDPlayer = Player<PlayerData>;
+
+pub trait Owner: Sized {
+    fn owns(&self, tower_id: u64) -> bool;
+    fn get(pkey: &[u64; 4]) -> Option<Self>;
+}
+
+impl Owner for TDPlayer {
+    fn get(pkey: &[u64; 4]) -> Option<Self> {
+        TDPlayer::get_from_pid(&TDPlayer::pkey_to_pid(pkey))
     }
-
-    pub fn owns(&self, tower_id: u64) -> bool {
-        for o in self.inventory.iter() {
+    fn owns(&self, tower_id: u64) -> bool {
+        for o in self.data.inventory.iter() {
             if *o == tower_id {
                 return true;
             }

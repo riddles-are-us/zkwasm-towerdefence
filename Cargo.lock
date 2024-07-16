@@ -334,7 +334,7 @@ checksum = "4f186bd2dcf04330886ce82d6f33dd75a7bfcf69ecf5763b89fcde53b6ac9838"
 [[package]]
 name = "zkwasm-rest-abi"
 version = "0.1.0"
-source = "git+https://github.com/DelphinusLab/zkwasm-typescript-mini-server#1410ec82dffbbe758d52844618e3dd53bee36798"
+source = "git+https://github.com/DelphinusLab/zkwasm-typescript-mini-server#824f4715278e03e2553f8c86408f0b74a0d06d6b"
 dependencies = [
  "derive_builder",
  "lazy_static",

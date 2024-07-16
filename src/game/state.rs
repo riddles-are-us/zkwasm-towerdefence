@@ -5,7 +5,8 @@ use super::object::Monster;
 use super::object::Object;
 use super::object::Spawner;
 use super::object::Tower;
-use crate::player::Player;
+use crate::player::TDPlayer;
+use crate::player::Owner;
 use crate::config::spawn_monster;
 use crate::config::CONFIG;
 use crate::config::SPWAN_INTERVAL;
@@ -18,8 +19,6 @@ use crate::tile::map::Map;
 use crate::tile::map::PositionedObject;
 use serde::Serialize;
 use zkwasm_rust_sdk::require;
-use zkwasm_rust_sdk::wasm_dbg;
-//use zkwasm_rust_sdk::require;
 
 // The global state
 #[derive(Clone, Serialize)]
@@ -130,23 +129,23 @@ pub fn handle_place_tower(iid: &[u64; 4], pos: usize) {
     global.place_tower_at(inventory_obj.unwrap(), position);
 }
 
-pub fn handle_update_inventory(iid: &[u64; 4], feature: u64, pid: &[u64; 4]) {
+pub fn handle_update_inventory(iid: &[u64; 4], feature: u64, pid: &[u64; 2]) {
     let mut inventory_obj = InventoryObject::get(iid);
     if let Some(inventory_obj) = inventory_obj.as_mut() {
         let tower = inventory_obj.object.get_the_tower_mut();
-        tower.owner[0] = pid[1];
-        tower.owner[1] = pid[2];
+        tower.owner[0] = pid[0];
+        tower.owner[1] = pid[1];
         inventory_obj.store();
     } else {
         let mut tower = CONFIG.standard_towers[feature as usize].clone();
-        tower.owner[0] = pid[1];
-        tower.owner[1] = pid[2];
+        tower.owner[0] = pid[0];
+        tower.owner[1] = pid[1];
         let inventory_obj = InventoryObject::new(iid.clone(), Object::Tower(tower), 10);
         inventory_obj.store();
     }
 }
 
-pub fn handle_claim_tower(nonce: u64, iid: &[u64; 4], pid: &[u64; 4]) {
+pub fn handle_claim_tower(nonce: u64, iid: &[u64; 4], pkey: &[u64; 4]) {
     let inventory_obj = InventoryObject::get(iid);
     if inventory_obj.is_none() {
         unreachable!()
@@ -154,24 +153,22 @@ pub fn handle_claim_tower(nonce: u64, iid: &[u64; 4], pid: &[u64; 4]) {
         let obj = inventory_obj.unwrap().object.clone();
         let tower = obj.get_the_tower();
         unsafe {
-            zkwasm_rust_sdk::require(tower.owner[0] == pid[1]);
-            zkwasm_rust_sdk::require(tower.owner[1] == pid[2]);
+            zkwasm_rust_sdk::require(tower.owner[0] == pkey[1]);
+            zkwasm_rust_sdk::require(tower.owner[1] == pkey[2]);
         }
 
-        let mut player_opt = Player::get(pid);
+        let mut player_opt = TDPlayer::get(pkey);
         if let Some(player) = player_opt.as_mut() {
             player.check_and_inc_nonce(nonce);
             if !player.owns(iid[0]) {
-                player.inventory.push(iid[0]);
+                player.data.inventory.push(iid[0]);
                 player.store()
             }
         } else {
             unsafe { zkwasm_rust_sdk::require(nonce == 0) };
-            let player = Player {
-                nonce,
-                player_id: *pid,
-                inventory: vec![iid[0]],
-            };
+            let mut player = TDPlayer::new_from_pid(TDPlayer::pkey_to_pid(pkey));
+            player.data.inventory.push(iid[0]);
+            player.nonce = 1;
             player.store()
         }
     }

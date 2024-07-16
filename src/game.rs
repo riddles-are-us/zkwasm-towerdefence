@@ -1,8 +1,7 @@
 use crate::config::init_state;
-use crate::player::Player;
+use crate::player::{TDPlayer, Owner};
 use serde::{ser::SerializeSeq, Serialize, Serializer};
 use zkwasm_rust_sdk::require;
-use zkwasm_rust_sdk::wasm_dbg;
 
 // Custom serializer for `u64` as a string.
 pub fn bigint_serializer<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
@@ -45,14 +44,14 @@ fn to_full_obj_id(id: u64) -> [u64; 4] {
 }
 
 /// Step function receives a encoded command and changes the global state accordingly
-pub fn handle_command(commands: &[u64; 4], pid: &[u64; 4]) {
+pub fn handle_command(commands: &[u64; 4], pkey: &[u64; 4]) {
     let command = commands[0] & 0xff;
     let feature = (commands[0] >> 8) & 0xff;
     let nonce = commands[0] >> 16;
     if command == CMD_RUN {
         unsafe { crate::config::GLOBAL.run() };
     } else if command == CMD_PLACE_TOWER {
-        let mut player = Player::get(pid).unwrap();
+        let mut player = TDPlayer::get(pkey).unwrap();
         let objindex = commands[1];
         player.check_and_inc_nonce(nonce);
         unsafe { require(player.owns(objindex)) };
@@ -61,27 +60,25 @@ pub fn handle_command(commands: &[u64; 4], pid: &[u64; 4]) {
         state::handle_place_tower(&to_full_obj_id(objindex), pos as usize);
         player.store();
     } else if command == CMD_UPGRADE_TOWER {
-        let mut player = Player::get(pid).unwrap();
+        let mut player = TDPlayer::get(pkey).unwrap();
         player.check_and_inc_nonce(nonce);
         let objindex = commands[1];
         unsafe { require(player.owns(objindex)) };
         state::handle_upgrade_inventory(&to_full_obj_id(objindex));
         player.store();
     } else if command == CMD_MINT_TOWER {
-        Player::get_and_check_nonce(pid, nonce);
+        let pid = TDPlayer::pkey_to_pid(pkey);
+        TDPlayer::get_and_check_nonce(&pid, nonce);
         let objindex = commands[1];
-        let pid = [0, commands[2], commands[3], 0]; // 128bit security strength
-        state::handle_update_inventory(&to_full_obj_id(objindex), feature, &pid);
+        let target_pid = [commands[2], commands[3]]; // 128bit security strength
+        state::handle_update_inventory(&to_full_obj_id(objindex), feature, &target_pid);
     } else if command == CMD_CLAIM_TOWER {
         let objindex = commands[1];
-        state::handle_claim_tower(nonce, &to_full_obj_id(objindex), pid);
+        state::handle_claim_tower(nonce, &to_full_obj_id(objindex), pkey);
     } else if commands[0] == CMD_DROP_TOWER {
-        let mut player = Player::get(pid).unwrap();
+        let mut player = TDPlayer::get(pkey).unwrap();
         player.check_and_inc_nonce(nonce);
         let inventory_index = commands[1];
-        unsafe {
-            wasm_dbg(inventory_index as u64);
-        }
         state::handle_drop_tower(&to_full_obj_id(inventory_index));
         player.store();
     }
@@ -89,9 +86,9 @@ pub fn handle_command(commands: &[u64; 4], pid: &[u64; 4]) {
 
 pub struct State {}
 
-#[derive(Clone, Serialize)]
+#[derive(Serialize)]
 pub struct UserState<'a> {
-    player: Option<Player>,
+    player: Option<TDPlayer>,
     global: &'a crate::game::state::State,
 }
 
@@ -99,7 +96,7 @@ impl State {
     pub fn get_state(pid: Vec<u64>) -> String {
         //zkwasm_rust_sdk::dbg!("finish loading {:?}", merkle_root);
         let global = unsafe { &crate::config::GLOBAL };
-        let player = Player::get(&pid.try_into().unwrap());
+        let player = TDPlayer::get(&pid.try_into().unwrap());
         serde_json::to_string(
             &(UserState {
                 player,
