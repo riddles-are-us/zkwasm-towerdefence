@@ -8,8 +8,6 @@ use zkwasm_rust_sdk::require;
 //use crate::game::object::Dropped;
 //use crate::tile::map::Map;
 use crate::game::object::Tower;
-use crate::tile::coordinate::Coordinate;
-use crate::tile::coordinate::RectCoordinate;
 use crate::tile::coordinate::RectDirection;
 use crate::tile::coordinate::Tile;
 use serde::Serialize;
@@ -207,7 +205,7 @@ pub fn init_state() {
         global
             .map
             .tiles
-            .push(Tile::new(RectCoordinate::new(0, 0), None))
+            .push(Tile::new(None))
     }
     let mut m = 0;
     zkwasm_rust_sdk::dbg!("m is {}\n", m);

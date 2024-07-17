@@ -16,7 +16,7 @@ const CMD_PLACE_TOWER = 1n;
 const CMD_WITHDRAW_TOWER = 2n;
 const CMD_MINT_TOWER = 3n;
 const CMD_DROP_TOWER = 4n;
-const CMD_UPGRADE_TOWER = 4n;
+const CMD_UPGRADE_TOWER = 5n;
 
 function createCommand(nonce: bigint, command: bigint, feature: bigint) {
   return (nonce << 48n) + (feature << 8n) + command;
@@ -24,8 +24,8 @@ function createCommand(nonce: bigint, command: bigint, feature: bigint) {
 
 let account = "1234";
 
-const rpc = new ZKWasmAppRpc("http://localhost:3000");
-//const rpc = new ZKWasmAppRpc("http://114.119.187.224:8085");
+//const rpc = new ZKWasmAppRpc("http://localhost:3000");
+const rpc = new ZKWasmAppRpc("http://114.119.187.224:8085");
 
 async function mintTower() {
 }
@@ -40,8 +40,9 @@ async function main() {
   rpc.query_config();
 
   let nonce = 0n;
-  if (state.player) {
-    nonce = state.player.nonce;
+  if (state.data) {
+    let data = JSON.parse(state.data);
+    nonce = BigInt(data.player.nonce);
   }
 
   let accountInfo = new LeHexBN(query(account).pkx).toU64Array();
@@ -51,13 +52,15 @@ async function main() {
 
   // position of the tower we would like to place
   state = rpc.query_state([1n], account);
-  nonce = state.player.nonce;
+
+  nonce = BigInt(JSON.parse(state.data).player.nonce);
+
   let pos = x<<32n + y;
   rpc.send_transaction([createCommand(nonce, CMD_PLACE_TOWER, 0n), towerId, pos, 0n], account);
 
-
   state = rpc.query_state([1n], account);
-  console.log(`player nonce is ${state.player.nonce}`);
+  nonce = BigInt(JSON.parse(state.data).player.nonce);
+  console.log(`player nonce is ${nonce}`);
 }
 
 main();

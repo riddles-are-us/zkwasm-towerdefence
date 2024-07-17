@@ -160,16 +160,14 @@ impl Coordinate for RectCoordinate {
 }
 
 #[derive(Clone, Serialize)]
-pub struct Tile<C: Coordinate, F: Clone> {
-    cor: C,
+pub struct Tile<F: Clone> {
     pub feature: F,
     pub occupied: u32,
 }
 
-impl<C: Coordinate, F: Clone> Tile<C, F> {
-    pub fn new(c: C, f: F) -> Self {
+impl<F: Clone> Tile<F> {
+    pub fn new(f: F) -> Self {
         Tile {
-            cor: c,
             feature: f,
             occupied: 0,
         }

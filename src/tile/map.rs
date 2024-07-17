@@ -25,11 +25,11 @@ impl<C: Coordinate, O: Clone> PositionedObject<C, O> {
 pub struct Map<C: Coordinate> {
     pub width: usize,
     pub height: usize,
-    pub tiles: Vec<Tile<C, Option<C::Direction>>>,
+    pub tiles: Vec<Tile<Option<C::Direction>>>,
 }
 
 impl<C: Coordinate> Map<C> {
-    pub fn new(width: usize, height: usize, tiles: Vec<Tile<C, Option<C::Direction>>>) -> Self {
+    pub fn new(width: usize, height: usize, tiles: Vec<Tile<Option<C::Direction>>>) -> Self {
         Map {
             width,
             height,
