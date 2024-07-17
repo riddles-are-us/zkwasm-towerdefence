@@ -13,7 +13,7 @@ let checksign = verify_sign(msgHash, pkx, pky, sigx, sigy, sigr);
 console.log("checking signature ...", checksign);
 
 const CMD_PLACE_TOWER = 1n;
-const CMD_CLAIM_TOWER = 2n;
+const CMD_WITHDRAW_TOWER = 2n;
 const CMD_MINT_TOWER = 3n;
 const CMD_DROP_TOWER = 4n;
 const CMD_UPGRADE_TOWER = 4n;
@@ -46,10 +46,18 @@ async function main() {
 
   let accountInfo = new LeHexBN(query(account).pkx).toU64Array();
   console.log("account info:", accountInfo);
-  let pos = x<<32n + y;
   rpc.send_transaction([createCommand(nonce, CMD_MINT_TOWER, 0n), towerId, accountInfo[1], accountInfo[2]], account);
-  rpc.send_transaction([createCommand(nonce, CMD_CLAIM_TOWER, 0n), towerId, 0n, 0n], account);
+
+
+  // position of the tower we would like to place
+  state = rpc.query_state([1n], account);
+  nonce = state.player.nonce;
+  let pos = x<<32n + y;
   rpc.send_transaction([createCommand(nonce, CMD_PLACE_TOWER, 0n), towerId, pos, 0n], account);
+
+
+  state = rpc.query_state([1n], account);
+  console.log(`player nonce is ${state.player.nonce}`);
 }
 
 main();

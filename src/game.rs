@@ -1,6 +1,6 @@
 use crate::config::init_state;
 use crate::player::{TDPlayer, Owner};
-use serde::{ser::SerializeSeq, Serialize, Serializer};
+use serde::{Serialize, Serializer};
 use zkwasm_rust_sdk::require;
 
 // Custom serializer for `u64` as a string.
@@ -11,17 +11,7 @@ where
     serializer.serialize_str(&value.to_string())
 }
 
-// Custom serializer for `[u64; 4]` as an array of strings.
-pub fn bigint_array_serializer<S>(array: &Vec<u64>, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    let mut seq = serializer.serialize_seq(Some(array.len()))?;
-    for &element in array {
-        seq.serialize_element(&element.to_string())?;
-    }
-    seq.end()
-}
+
 
 pub mod event;
 pub mod object;
@@ -33,7 +23,7 @@ pub mod state;
 
 const CMD_RUN: u64 = 0;
 const CMD_PLACE_TOWER: u64 = 1;
-const CMD_CLAIM_TOWER: u64 = 2;
+const CMD_WITHDRAW_TOWER: u64 = 2;
 const CMD_MINT_TOWER: u64 = 3;
 const CMD_DROP_TOWER: u64 = 4;
 const CMD_UPGRADE_TOWER: u64 = 5;
@@ -72,9 +62,9 @@ pub fn handle_command(commands: &[u64; 4], pkey: &[u64; 4]) {
         let objindex = commands[1];
         let target_pid = [commands[2], commands[3]]; // 128bit security strength
         state::handle_update_inventory(&to_full_obj_id(objindex), feature, &target_pid);
-    } else if command == CMD_CLAIM_TOWER {
+    } else if command == CMD_WITHDRAW_TOWER {
         let objindex = commands[1];
-        state::handle_claim_tower(nonce, &to_full_obj_id(objindex), pkey);
+        state::handle_withdraw_tower(nonce, &to_full_obj_id(objindex), pkey);
     } else if commands[0] == CMD_DROP_TOWER {
         let mut player = TDPlayer::get(pkey).unwrap();
         player.check_and_inc_nonce(nonce);

@@ -1,8 +1,19 @@
-use crate::game::bigint_array_serializer;
 use crate::StorageData;
 use crate::Player;
-use serde::Serialize;
 use core::slice::IterMut;
+use serde::{ser::SerializeSeq, Serialize, Serializer};
+
+// Custom serializer for `[u64; 4]` as an array of strings.
+pub fn bigint_array_serializer<S>(array: &Vec<u64>, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let mut seq = serializer.serialize_seq(Some(array.len()))?;
+    for &element in array {
+        seq.serialize_element(&element.to_string())?;
+    }
+    seq.end()
+}
 
 #[derive(Clone, Serialize)]
 pub struct PlayerData {
