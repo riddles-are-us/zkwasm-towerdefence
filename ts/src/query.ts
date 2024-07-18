@@ -13,7 +13,7 @@ let checksign = verify_sign(msgHash, pkx, pky, sigx, sigy, sigr);
 console.log("checking signature ...", checksign);
 
 const CMD_PLACE_TOWER = 1n;
-const CMD_CLAIM_TOWER = 2n;
+const CMD_WITHDRAW_TOWER = 2n;
 const CMD_MINT_TOWER = 3n;
 const CMD_DROP_TOWER = 4n;
 const CMD_UPGRADE_TOWER = 4n;
@@ -24,8 +24,8 @@ function createCommand(nonce: bigint, command: bigint, feature: bigint) {
 
 let account = "1234";
 
-const rpc = new ZKWasmAppRpc("http://localhost:3000");
-//const rpc = new ZKWasmAppRpc("http://114.119.187.224:8085");
+//const rpc = new ZKWasmAppRpc("http://localhost:3000");
+const rpc = new ZKWasmAppRpc("http://114.119.187.224:8085");
 
 async function mintTower() {
 }
@@ -37,6 +37,19 @@ async function main() {
   let x = 0n;
   let y = 0n;
   let state = rpc.query_state([1n], account);
+  let data = JSON.parse(state.data);
+
+  console.log("player info:");
+  console.log(data.player);
+
+
+  console.log("monsters info:");
+  console.log(data.global.monsters);
+
+
+  console.log("towers info:");
+  console.log(data.global.towers);
+
   rpc.query_config();
 }
 
