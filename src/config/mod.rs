@@ -201,26 +201,26 @@ macro_rules! em {
 
 pub fn init_state() {
     let global = unsafe { &mut GLOBAL };
-    for _ in 0..96 {
-        global
-            .map
-            .tiles
-            .push(Tile::new(None))
-    }
-    let mut m = 0;
-    zkwasm_rust_sdk::dbg!("m is {}\n", m);
-    em!(m); em!(m); pb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); pc!(m); em!(m);
-    em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
-    em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
-    em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mb!(m); em!(m); em!(m); mt!(m); em!(m);
-    em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); em!(m); mt!(m); em!(m);
-    em!(m); em!(m); em!(m); em!(m); mb!(m); ml!(m); ml!(m); ml!(m); em!(m); em!(m); mt!(m); em!(m);
-    em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
-    em!(m); em!(m); em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m);
+    if global.map.tiles.is_empty() {
+        for _ in 0..96 {
+            global
+                .map
+                .tiles
+                .push(Tile::new(None))
+        }
+        let mut m = 0;
+        em!(m); em!(m); pb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); pc!(m); em!(m);
+        em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
+        em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
+        em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mb!(m); em!(m); em!(m); mt!(m); em!(m);
+        em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); em!(m); mt!(m); em!(m);
+        em!(m); em!(m); em!(m); em!(m); mb!(m); ml!(m); ml!(m); ml!(m); em!(m); em!(m); mt!(m); em!(m);
+        em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
+        em!(m); em!(m); em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m);
+        //zkwasm_rust_sdk::dbg!("m is {}\n", m);
 
-    zkwasm_rust_sdk::dbg!("m is {}\n", m);
-
-    if m != WIDTH * HEIGHT {
-        unreachable!();
+        if m != WIDTH * HEIGHT {
+            unreachable!();
+        }
     }
 }

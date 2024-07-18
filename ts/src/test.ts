@@ -1,6 +1,5 @@
 //import initHostBind, * as hostbind from "./wasmbind/hostbind.js";
-import { query, ZKWasmAppRpc } from "zkwasm-ts-server";
-import { LeHexBN } from "./sign.js";
+import { query, ZKWasmAppRpc, LeHexBN } from "zkwasm-ts-server";
 
 const CMD_PLACE_TOWER = 1n;
 const CMD_WITHDRAW_TOWER = 2n;
