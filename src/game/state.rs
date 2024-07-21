@@ -19,6 +19,9 @@ use crate::tile::map::Map;
 use crate::tile::map::PositionedObject;
 use serde::Serialize;
 use zkwasm_rust_sdk::require;
+use crate::MERKLE_MAP;
+use crate::game::serialize::U64arraySerialize;
+use core::slice::IterMut;
 
 // The global state
 #[derive(Clone, Serialize)]
@@ -35,6 +38,57 @@ pub struct State {
 }
 
 impl State {
+    pub fn store(&self) {
+        let kvpair = unsafe { &mut MERKLE_MAP };
+        let monsters_data = self.monsters.iter().map(|x| x.to_u64_array()).flatten().collect::<Vec<u64>>();
+        let spawners_data = self.spawners.iter().map(|x| x.to_u64_array()).flatten().collect::<Vec<u64>>();
+        let towers_data = self.towers.iter().map(|x| x.to_u64_array()).flatten().collect::<Vec<u64>>();
+        let data = vec![vec![self.id_allocator, self.monsters.len() as u64, self.spawners.len() as u64, self.towers.len() as u64], monsters_data, spawners_data, towers_data]
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+        zkwasm_rust_sdk::dbg!("stored data: {:?}\n", data);
+        let splen = self.spawners.len();
+        zkwasm_rust_sdk::dbg!("spawners: {}\n", splen);
+        let mlen = self.monsters.len();
+        zkwasm_rust_sdk::dbg!("monsters: {}\n", mlen);
+        kvpair.set(&[0,0,0,0], &data);
+        let root = kvpair.merkle.root;
+        zkwasm_rust_sdk::dbg!("after store: {:?}\n", root);
+    }
+    pub fn fetch(&mut self) -> bool {
+        let kvpair = unsafe { &mut MERKLE_MAP };
+        let mut data = kvpair.get(&[0,0,0,0]);
+        if data.is_empty() {
+            false
+        } else {
+            let mut data = data.iter_mut();
+            zkwasm_rust_sdk::dbg!("stored data: {:?}\n", data);
+            self.id_allocator = *data.next().unwrap();
+            let monsters_len = *data.next().unwrap() as usize;
+            let spawners_len = *data.next().unwrap() as usize;
+            let towers_len = *data.next().unwrap() as usize;
+            zkwasm_rust_sdk::dbg!("stored length: {} {} {}\n", monsters_len, spawners_len, towers_len);
+            self.monsters = Vec::with_capacity(monsters_len);
+            self.spawners = Vec::with_capacity(spawners_len);
+            self.towers = Vec::with_capacity(towers_len);
+            for _ in 0..monsters_len {
+                let obj = PositionedObject::<RectCoordinate, Monster>::from_u64_array(&mut data);
+                self.monsters.push(obj);
+            }
+            for _ in 0..spawners_len {
+                let obj = PositionedObject::<RectCoordinate, Spawner>::from_u64_array(&mut data);
+                self.map.set_occupy(&obj.position, 1);
+                self.spawners.push(obj);
+            }
+            for _ in 0..towers_len {
+                let obj = PositionedObject::<RectCoordinate, InventoryObject>::from_u64_array(&mut data);
+                self.map.set_occupy(&obj.position, 1);
+                self.towers.push(obj);
+            }
+            true
+        }
+    }
     pub fn place_spawner_at(
         &mut self,
         object: Spawner,
@@ -140,7 +194,7 @@ pub fn handle_update_inventory(iid: &[u64; 4], feature: u64, pid: &[u64; 2]) {
         let mut tower = CONFIG.standard_towers[feature as usize].clone();
         tower.owner[0] = pid[0];
         tower.owner[1] = pid[1];
-        let inventory_obj = InventoryObject::new(iid.clone(), Object::Tower(tower), 10);
+        let inventory_obj = InventoryObject::new(iid.clone(), Object::Tower(tower));
         inventory_obj.store();
     }
     let mut player_opt = TDPlayer::get_from_pid(pid);
@@ -208,9 +262,11 @@ pub fn handle_upgrade_inventory(iid: &[u64; 4]) {
 
 impl State {
     pub fn run(&mut self) {
-        //let global = unsafe { &mut crate::config::GLOBAL };
-        //let map = unsafe { &crate::config::GLOBAL.map };
-        //let monsters = &mut self.map.monsters;
+        let splen = self.spawners.len();
+        zkwasm_rust_sdk::dbg!("run spawners: {}\n", splen);
+        let mlen = self.monsters.len();
+        zkwasm_rust_sdk::dbg!("run monsters: {}\n", mlen);
+
         let mut collector = vec![];
 
         // figureout all the collectors in the state

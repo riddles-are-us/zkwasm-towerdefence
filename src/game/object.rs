@@ -1,4 +1,3 @@
-use crate::config::UPGRADE_COST_MODIFIER;
 use crate::game::serialize::U64arraySerialize;
 use serde::Serialize;
 use std::slice::IterMut;
@@ -8,6 +7,11 @@ use crate::{
     config::upgrade_tower,
     tile::coordinate::{Coordinate, RectCoordinate, RectDirection},
 };
+
+
+pub fn to_full_obj_id(id: u64) -> [u64; 4] {
+    [id, 0xffff, 0xff01, 0xff02]
+}
 
 #[derive(Clone, Serialize)]
 pub struct Monster {
@@ -270,19 +274,34 @@ impl Object<RectDirection> {
 pub struct InventoryObject {
     pub object_id: [u64; 4],
     pub object: Object<RectDirection>,
-    pub cost: u64,
-    pub upgrade_modifier: u64,
     pub reward: u64,
 }
 
 impl InventoryObject {
-    pub fn new(object_id: [u64; 4], object: Object<RectDirection>, cost: u64) -> Self {
+    pub fn new(object_id: [u64; 4], object: Object<RectDirection>) -> Self {
         Self {
             object_id,
-            cost,
-            upgrade_modifier: UPGRADE_COST_MODIFIER,
             object,
             reward: 0,
+        }
+    }
+}
+
+impl U64arraySerialize for InventoryObject {
+    fn to_u64_array(&self) -> Vec<u64> {
+        let mut data = self.object.to_u64_array();
+        data.push(self.reward);
+        data.push(self.object_id[0]);
+        data
+    }
+    fn from_u64_array(data: &mut IterMut<u64>) -> Self {
+        let object = Object::from_u64_array(data);
+        let reward = *(data.next().unwrap());
+        let oid = *(data.next().unwrap());
+        InventoryObject {
+           object_id: to_full_obj_id(oid),
+           reward,
+           object,
         }
     }
 }
@@ -300,8 +319,6 @@ impl InventoryObject {
             let o = Object::from_u64_array(&mut slice_iter);
             let inventory_obj = InventoryObject {
                 object_id: object_id.clone(),
-                cost: *(slice_iter.next().unwrap()),
-                upgrade_modifier: *(slice_iter.next().unwrap()),
                 reward: *(slice_iter.next().unwrap()),
                 object: o,
             };
@@ -312,8 +329,6 @@ impl InventoryObject {
         let oid = self.object_id;
         zkwasm_rust_sdk::dbg!("store object {:?}\n", oid);
         let mut data = self.object.to_u64_array();
-        data.push(self.cost);
-        data.push(self.upgrade_modifier);
         data.push(self.reward);
         let kvpair = unsafe { &mut MERKLE_MAP };
         kvpair.set(&self.object_id, data.as_slice());

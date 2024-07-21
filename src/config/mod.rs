@@ -3,6 +3,7 @@ use crate::game::object::Collector;
 use crate::game::object::Monster;
 use crate::game::object::Spawner;
 use crate::game::state::State;
+use crate::settlement::SettleMentInfo;
 use crate::tile::map::Map;
 use zkwasm_rust_sdk::require;
 //use crate::game::object::Dropped;
@@ -65,8 +66,7 @@ impl Config {
         serde_json::to_string(&CONFIG.clone()).unwrap()
     }
     pub fn flush_settlement() -> Vec<u8> {
-        //SettleMentInfo::flush_settlement()
-        vec![]
+        SettleMentInfo::flush_settlement()
     }
 }
 
@@ -208,6 +208,9 @@ pub fn init_state() {
                 .tiles
                 .push(Tile::new(None))
         }
+    }
+    let stored = global.fetch();
+    if !stored {
         let mut m = 0;
         em!(m); em!(m); pb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); pc!(m); em!(m);
         em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
@@ -219,6 +222,20 @@ pub fn init_state() {
         em!(m); em!(m); em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m);
         //zkwasm_rust_sdk::dbg!("m is {}\n", m);
 
+        if m != WIDTH * HEIGHT {
+            unreachable!();
+        }
+    } else {
+        let mut m = 0;
+        em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); pc!(m); em!(m);
+        em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
+        em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
+        em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mb!(m); em!(m); em!(m); mt!(m); em!(m);
+        em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); em!(m); mt!(m); em!(m);
+        em!(m); em!(m); em!(m); em!(m); mb!(m); ml!(m); ml!(m); ml!(m); em!(m); em!(m); mt!(m); em!(m);
+        em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
+        em!(m); em!(m); em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m);
+        //zkwasm_rust_sdk::dbg!("m is {}\n", m);
         if m != WIDTH * HEIGHT {
             unreachable!();
         }

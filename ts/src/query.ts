@@ -21,7 +21,7 @@ async function main() {
   let towerId = 0n;
   let x = 0n;
   let y = 0n;
-  let state = rpc.query_state([1n], account);
+  let state:any = await rpc.queryState(account);
   let data = JSON.parse(state.data);
 
   console.log("player info:");
@@ -35,7 +35,8 @@ async function main() {
   console.log("towers info:");
   console.log(data.global.towers);
 
-  rpc.query_config();
+  let config = await rpc.query_config();
+  console.log("config", config);
 }
 
 main();

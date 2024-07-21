@@ -1,7 +1,10 @@
 use super::coordinate::Coordinate;
 use super::coordinate::Tile;
 use crate::game::bigint_serializer;
+use crate::game::object::Object;
 use serde::Serialize;
+use crate::game::serialize::U64arraySerialize;
+use core::slice::IterMut;
 
 #[derive(Clone, Serialize)]
 pub struct PositionedObject<C: Coordinate, Object: Clone> {
@@ -17,6 +20,35 @@ impl<C: Coordinate, O: Clone> PositionedObject<C, O> {
             id,
             object: obj,
             position: pos,
+        }
+    }
+}
+
+fn cor_to_u64<C: Coordinate>(c: &C) -> u64 {
+    let (x, y) = c.repr();
+    ((x as u64) << 32) + ((y as u32) as u64)
+}
+
+fn u64_to_cor<C: Coordinate>(u: u64) -> C {
+    C::new((u >> 32) as i64, (u & 0xffffffff) as i64)
+}
+
+
+impl<C: Coordinate, O: Clone + U64arraySerialize> U64arraySerialize for PositionedObject<C, O> {
+    fn to_u64_array(&self) -> Vec<u64> {
+        let index = cor_to_u64(&self.position);
+        let mut data = vec![self.id, index];
+        data.append(&mut self.object.to_u64_array());
+        data
+    }
+    fn from_u64_array(data: &mut IterMut<u64>) -> Self {
+        let id = *(data.next().unwrap());
+        let position = u64_to_cor(*(data.next().unwrap()));
+        let object = O::from_u64_array(data);
+        PositionedObject {
+            id,
+            position,
+            object,
         }
     }
 }

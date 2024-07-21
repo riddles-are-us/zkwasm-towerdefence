@@ -1,5 +1,6 @@
 use crate::config::init_state;
 use crate::player::{TDPlayer, Owner};
+use object::to_full_obj_id;
 use serde::{Serialize, Serializer};
 use zkwasm_rust_sdk::require;
 
@@ -29,9 +30,6 @@ const CMD_DROP_TOWER: u64 = 4;
 const CMD_UPGRADE_TOWER: u64 = 5;
 //const CMD_SPAWN: u64 = 3;
 
-fn to_full_obj_id(id: u64) -> [u64; 4] {
-    [id, 0xffff, 0xff01, 0xff02]
-}
 
 /// Step function receives a encoded command and changes the global state accordingly
 pub fn handle_command(commands: &[u64; 4], pkey: &[u64; 4]) {

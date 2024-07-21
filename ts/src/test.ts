@@ -25,7 +25,7 @@ async function main() {
   let towerId = 0n;
   let x = 0n;
   let y = 0n;
-  let state = rpc.query_state([1n], account);
+  let state:any = await rpc.queryState(account);
   rpc.query_config();
 
   let nonce = 0n;
@@ -38,18 +38,19 @@ async function main() {
 
   let accountInfo = new LeHexBN(query(account).pkx).toU64Array();
   console.log("account info:", accountInfo);
-  rpc.send_transaction([createCommand(nonce, CMD_MINT_TOWER, 0n), towerId, accountInfo[1], accountInfo[2]], account);
+  let processStamp = await rpc.sendTransaction([createCommand(nonce, CMD_MINT_TOWER, 0n), towerId, accountInfo[1], accountInfo[2]], account);
+  console.log("processed at:", processStamp);
 
 
   // position of the tower we would like to place
-  state = rpc.query_state([1n], account);
+  state = await rpc.queryState(account);
 
   nonce = BigInt(JSON.parse(state.data).player.nonce);
 
   let pos = x<<32n + y;
-  rpc.send_transaction([createCommand(nonce, CMD_PLACE_TOWER, 0n), towerId, pos, 0n], account);
+  await rpc.sendTransaction([createCommand(nonce, CMD_PLACE_TOWER, 0n), towerId, pos, 0n], account);
 
-  state = rpc.query_state([1n], account);
+  state = await rpc.queryState(account);
   nonce = BigInt(JSON.parse(state.data).player.nonce);
   console.log(`player nonce is ${nonce}`);
 }
