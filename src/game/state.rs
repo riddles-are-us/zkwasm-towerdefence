@@ -47,14 +47,14 @@ impl State {
             .into_iter()
             .flatten()
             .collect::<Vec<_>>();
-        zkwasm_rust_sdk::dbg!("stored data: {:?}\n", data);
+        //zkwasm_rust_sdk::dbg!("stored data: {:?}\n", data);
         let splen = self.spawners.len();
-        zkwasm_rust_sdk::dbg!("spawners: {}\n", splen);
+        //zkwasm_rust_sdk::dbg!("spawners: {}\n", splen);
         let mlen = self.monsters.len();
-        zkwasm_rust_sdk::dbg!("monsters: {}\n", mlen);
+        //zkwasm_rust_sdk::dbg!("monsters: {}\n", mlen);
         kvpair.set(&[0,0,0,0], &data);
         let root = kvpair.merkle.root;
-        zkwasm_rust_sdk::dbg!("after store: {:?}\n", root);
+        //zkwasm_rust_sdk::dbg!("after store: {:?}\n", root);
     }
     pub fn fetch(&mut self) -> bool {
         let kvpair = unsafe { &mut MERKLE_MAP };
@@ -63,12 +63,12 @@ impl State {
             false
         } else {
             let mut data = data.iter_mut();
-            zkwasm_rust_sdk::dbg!("stored data: {:?}\n", data);
+            //zkwasm_rust_sdk::dbg!("stored data: {:?}\n", data);
             self.id_allocator = *data.next().unwrap();
             let monsters_len = *data.next().unwrap() as usize;
             let spawners_len = *data.next().unwrap() as usize;
             let towers_len = *data.next().unwrap() as usize;
-            zkwasm_rust_sdk::dbg!("stored length: {} {} {}\n", monsters_len, spawners_len, towers_len);
+            //zkwasm_rust_sdk::dbg!("stored length: {} {} {}\n", monsters_len, spawners_len, towers_len);
             self.monsters = Vec::with_capacity(monsters_len);
             self.spawners = Vec::with_capacity(spawners_len);
             self.towers = Vec::with_capacity(towers_len);
@@ -263,7 +263,6 @@ pub fn handle_upgrade_inventory(iid: &[u64; 4]) {
 impl State {
     pub fn run(&mut self) {
         let splen = self.spawners.len();
-        zkwasm_rust_sdk::dbg!("run spawners: {}\n", splen);
         let mlen = self.monsters.len();
         zkwasm_rust_sdk::dbg!("run monsters: {}\n", mlen);
 
@@ -282,6 +281,7 @@ impl State {
         for (index, obj) in self.monsters.iter_mut().enumerate() {
             //let m = &obj.object;
             if collector.contains(&obj.position) {
+                zkwasm_rust_sdk::dbg!("terminate: {}\n", index);
                 termination_monster.push(index);
             } else {
                 let index = self.map.index_of_tile_coordinate(&obj.position);
