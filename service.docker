@@ -32,7 +32,7 @@ RUN cargo build --release
 # Set the working directory inside the container
 WORKDIR /usr/src/zkwasm-typescript-mini-server
 
-COPY ./ts/node_modules/zkwasm-ts-server ./zkwasm-ts-server
+COPY ./ts ./zkwasm-ts-server
 COPY ./start.sh ./start.sh
 
 #WORKDIR /usr/src/ts
