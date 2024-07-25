@@ -28,8 +28,7 @@ const CMD_WITHDRAW_TOWER: u64 = 2;
 const CMD_MINT_TOWER: u64 = 3;
 const CMD_DROP_TOWER: u64 = 4;
 const CMD_UPGRADE_TOWER: u64 = 5;
-//const CMD_SPAWN: u64 = 3;
-
+const CMD_COLLECT_REWARDS: u64 = 6;
 
 /// Step function receives a encoded command and changes the global state accordingly
 pub fn handle_command(commands: &[u64; 4], pkey: &[u64; 4]) {
@@ -69,7 +68,14 @@ pub fn handle_command(commands: &[u64; 4], pkey: &[u64; 4]) {
         let inventory_index = commands[1];
         state::handle_drop_tower(&to_full_obj_id(inventory_index));
         player.store();
+    } else if commands[0] == CMD_COLLECT_REWARDS {
+        let mut player = TDPlayer::get(pkey).unwrap();
+        player.check_and_inc_nonce(nonce);
+        let inventory_index = commands[1];
+        state::handle_collect_rewards(&mut player, &to_full_obj_id(inventory_index));
+        player.store();
     }
+
 }
 
 pub struct State {}

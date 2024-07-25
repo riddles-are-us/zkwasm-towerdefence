@@ -248,6 +248,16 @@ pub fn handle_drop_tower(iid: &[u64; 4]) {
     }
 }
 
+pub fn handle_collect_rewards(player: &mut TDPlayer, iid: &[u64; 4]) {
+    //let inventory_obj = InventoryObject::get(iid);
+    let mut inventory_obj = InventoryObject::get(iid).unwrap();
+    player.data.reward += inventory_obj.reward;
+    inventory_obj.reward = 0;
+    inventory_obj.store();
+}
+
+
+
 pub fn handle_upgrade_inventory(iid: &[u64; 4]) {
     //let global = unsafe { &mut crate::config::GLOBAL };
     let mut inventory_obj = InventoryObject::get(iid).unwrap();

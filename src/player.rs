@@ -19,12 +19,14 @@ where
 pub struct PlayerData {
     #[serde(serialize_with = "bigint_array_serializer")]
     pub inventory: Vec<u64>,
+    pub reward: u64,
 }
 
 impl Default for PlayerData {
     fn default() -> Self {
         Self {
             inventory: vec![],
+            reward:0,
         }
     }
 }
@@ -38,6 +40,7 @@ impl StorageData for PlayerData {
         }
         PlayerData {
             inventory,
+            reward: (*u64data.next().unwrap())
         }
     }
     fn to_data(&self, data: &mut Vec<u64>) {
@@ -45,6 +48,7 @@ impl StorageData for PlayerData {
         for c in self.inventory.iter() {
             data.push(*c as u64);
         }
+        data.push(self.reward);
     }
 }
 

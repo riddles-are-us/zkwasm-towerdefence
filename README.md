@@ -26,12 +26,8 @@ Drop Tower:
 Upgrade Tower:
 [command = 5, TowerID: u64, Recipie: u64, reserved = 0]
 
-Place Modifier:
-[command = 6, Modifier: u64, Position: u64, reserved = 0]
-
-Remove Modifier:
-[command = 7, Modifier: u64, Position: u64, reserved = 0]
-
+Collect Rewards:
+[command = 6, TowerID: u64, reserved = 0, reserved = 0]
 
 
 ## Signing Transactions
