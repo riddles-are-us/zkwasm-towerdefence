@@ -44,7 +44,7 @@ async function mintTower(towerId: bigint, nonce: bigint) {
   let accountInfo = new LeHexBN(query(account).pkx).toU64Array();
   console.log("account info:", accountInfo);
   try {
-    let processStamp = await rpc.sendTransaction([createCommand(nonce, CMD_MINT_TOWER, 0n), towerId, accountInfo[1], accountInfo[2]], account);
+    let processStamp = await rpc.sendTransaction([createCommand(nonce, CMD_MINT_TOWER, 2n), towerId, accountInfo[1], accountInfo[2]], account);
     console.log("processed at:", processStamp);
   } catch(e) {
     if (e instanceof Error) {
@@ -59,7 +59,7 @@ async function main() {
   //sending_transaction([0n,0n,0n,0n], "1234");
   let x = 0n;
   let map = await getMap();
-  for (let y=0n; y<1n; y++) {
+  for (let y=0n; y<6n; y++) {
     let pos = x + y * BigInt(map.width);
     let towerId = 1038n + y;
     let nonce = await getNonce();
