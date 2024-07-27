@@ -47,6 +47,7 @@ async function mintTower(towerId: bigint, nonce: bigint) {
     let processStamp = await rpc.sendTransaction([createCommand(nonce, CMD_MINT_TOWER, 0n), towerId, accountInfo[1], accountInfo[2]], account);
     console.log("processed at:", processStamp);
   } catch(e) {
+    console.log(e);
     console.log("mintTower error at id:", towerId);
   }
 }
@@ -67,6 +68,7 @@ async function main() {
       let processStamp = await rpc.sendTransaction([createCommand(nonce, CMD_PLACE_TOWER, 0n), towerId, pos, 0n], account);
         console.log("place tower processed at:", processStamp);
     } catch(e) {
+      console.log(e);
       console.log("place tower error:", pos, towerId);
     }
   }
