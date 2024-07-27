@@ -119,7 +119,7 @@ impl State {
         object: InventoryObject,
         position: RectCoordinate,
     ) -> Result<&PositionedObject<RectCoordinate, InventoryObject>, u32> {
-        if self.map.get_occupy(&position) == 0 {
+        if self.map.get_occupy(&position) != 0 {
             Err(ERROR_POSITION_OCCUPIED)
         } else {
             self.id_allocator += 1;

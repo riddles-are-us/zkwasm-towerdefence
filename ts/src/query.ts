@@ -27,7 +27,6 @@ async function main() {
   console.log("player info:");
   console.log(data.player);
 
-
   console.log("monsters info:");
   console.log(data.global.monsters);
 

@@ -16,10 +16,20 @@ let account = "1234";
 //const rpc = new ZKWasmAppRpc("http://localhost:3000");
 const rpc = new ZKWasmAppRpc("http://114.119.187.224:8085");
 
+interface MapSize {
+  width: number,
+  height: number,
+}
+
+async function getMap(): Promise<MapSize> {
+  let state:any = await rpc.queryState(account);
+  let map = JSON.parse(state.data).global.map;
+  return map;
+
+}
+
 async function getNonce(): Promise<bigint> {
   let state:any = await rpc.queryState(account);
-  rpc.query_config();
-
   let nonce = 0n;
   if (state.data) {
     let data = JSON.parse(state.data);
@@ -45,12 +55,14 @@ async function mintTower(towerId: bigint, nonce: bigint) {
 async function main() {
   //sending_transaction([0n,0n,0n,0n], "1234");
   let x = 0n;
-  for (let y=0n; y<6n; y++) {
-    let pos = (x<<32n) + y;
+  let map = await getMap();
+  for (let y=0n; y<1n; y++) {
+    let pos = x + y * BigInt(map.width);
     let towerId = 1038n + y;
     let nonce = await getNonce();
-    mintTower(towerId, nonce);
+    await mintTower(towerId, nonce);
     nonce = await getNonce();
+    console.log("nonce is", nonce);
     try {
       let processStamp = await rpc.sendTransaction([createCommand(nonce, CMD_PLACE_TOWER, 0n), towerId, pos, 0n], account);
         console.log("place tower processed at:", processStamp);
