@@ -1,24 +1,34 @@
 use zkwasm_rest_abi::MERKLE_MAP;
 
 use crate::config::GLOBAL;
-pub struct SettleMentInfo(Vec<[u8; 4]>);
+pub struct SettlementInfo(Vec<[u64; 3]>);
+
+const WITHDRAW_OPCODE:[u8; 8] = [1, 0, 0, 0, 0, 0, 0, 0];
 
 
-pub static mut SETTLEMENT: SettleMentInfo = SettleMentInfo(vec![]);
+pub static mut SETTLEMENT: SettlementInfo = SettlementInfo(vec![]);
 
-impl SettleMentInfo {
-    pub fn append_settlement(info: [u8; 4]) {
+impl SettlementInfo {
+    pub fn append_settlement(info: [u64; 3]) {
         unsafe { SETTLEMENT.0.push(info) };
     }
     pub fn flush_settlement() -> Vec<u8> {
         zkwasm_rust_sdk::dbg!("flush settlement\n");
         let sinfo = unsafe { &mut SETTLEMENT };
-        let mut bytes: Vec<u8> = Vec::with_capacity(sinfo.0.len() * 80);
+        let mut bytes: Vec<u8> = Vec::with_capacity(sinfo.0.len() * 32);
         for settlement in &sinfo.0 {
-            bytes.push(settlement[0]);
-            bytes.push(settlement[1]);
-            bytes.push(settlement[2]);
-            bytes.push(settlement[3]);
+            for i in WITHDRAW_OPCODE {
+                bytes.push(i)
+            }
+            for i in settlement[0].to_le_bytes() {
+                bytes.push(i)
+            }
+            for i in settlement[1].to_le_bytes() {
+                bytes.push(i)
+            }
+            for i in settlement[2].to_le_bytes() {
+                bytes.push(i)
+            }
         }
         sinfo.0 = vec![];
         let merkle_ref = unsafe {&mut MERKLE_MAP};

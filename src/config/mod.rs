@@ -3,7 +3,7 @@ use crate::game::object::Collector;
 use crate::game::object::Monster;
 use crate::game::object::Spawner;
 use crate::game::state::State;
-use crate::settlement::SettleMentInfo;
+use crate::settlement::SettlementInfo;
 use crate::tile::map::Map;
 use zkwasm_rust_sdk::require;
 //use crate::game::object::Dropped;
@@ -66,7 +66,7 @@ impl Config {
         serde_json::to_string(&CONFIG.clone()).unwrap()
     }
     pub fn flush_settlement() -> Vec<u8> {
-        SettleMentInfo::flush_settlement()
+        SettlementInfo::flush_settlement()
     }
 }
 

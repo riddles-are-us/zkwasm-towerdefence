@@ -5,6 +5,7 @@ use super::object::Monster;
 use super::object::Object;
 use super::object::Spawner;
 use super::object::Tower;
+use super::ERROR_POSITION_OCCUPIED;
 use crate::player::TDPlayer;
 use crate::player::Owner;
 use crate::config::spawn_monster;
@@ -117,15 +118,16 @@ impl State {
         &mut self,
         object: InventoryObject,
         position: RectCoordinate,
-    ) -> &PositionedObject<RectCoordinate, InventoryObject> {
-        unsafe {
-            require(self.map.get_occupy(&position) == 0);
+    ) -> Result<&PositionedObject<RectCoordinate, InventoryObject>, u32> {
+        if self.map.get_occupy(&position) == 0 {
+            Err(ERROR_POSITION_OCCUPIED)
+        } else {
+            self.id_allocator += 1;
+            self.map.set_occupy(&position, 1);
+            self.towers
+                .push(PositionedObject::new(object, position, self.id_allocator));
+            Ok(self.towers.get(self.towers.len() - 1).unwrap())
         }
-        self.id_allocator += 1;
-        self.map.set_occupy(&position, 1);
-        self.towers
-            .push(PositionedObject::new(object, position, self.id_allocator));
-        self.towers.get(self.towers.len() - 1).unwrap()
     }
 
     pub fn remove_tower_at(
@@ -176,11 +178,12 @@ impl State {
     }
 }
 
-pub fn handle_place_tower(iid: &[u64; 4], pos: usize) {
+pub fn handle_place_tower(iid: &[u64; 4], pos: usize) -> Result<(), u32> {
     let global = unsafe { &mut crate::config::GLOBAL };
     let inventory_obj = InventoryObject::get(iid);
     let position = global.map.coordinate_of_tile_index(pos);
-    global.place_tower_at(inventory_obj.unwrap(), position);
+    global.place_tower_at(inventory_obj.unwrap(), position)?;
+    Ok(())
 }
 
 pub fn handle_update_inventory(iid: &[u64; 4], feature: u64, pid: &[u64; 2]) {

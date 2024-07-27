@@ -16,15 +16,7 @@ let account = "1234";
 //const rpc = new ZKWasmAppRpc("http://localhost:3000");
 const rpc = new ZKWasmAppRpc("http://114.119.187.224:8085");
 
-async function mintTower() {
-}
-
-
-async function main() {
-  //sending_transaction([0n,0n,0n,0n], "1234");
-  let towerId = 0n;
-  let x = 0n;
-  let y = 0n;
+async function getNonce(): Promise<bigint> {
   let state:any = await rpc.queryState(account);
   rpc.query_config();
 
@@ -35,24 +27,40 @@ async function main() {
       nonce = BigInt(data.player.nonce);
     }
   }
+  return nonce;
+}
 
+async function mintTower(towerId: bigint, nonce: bigint) {
   let accountInfo = new LeHexBN(query(account).pkx).toU64Array();
   console.log("account info:", accountInfo);
-  let processStamp = await rpc.sendTransaction([createCommand(nonce, CMD_MINT_TOWER, 0n), towerId, accountInfo[1], accountInfo[2]], account);
-  console.log("processed at:", processStamp);
+  try {
+    let processStamp = await rpc.sendTransaction([createCommand(nonce, CMD_MINT_TOWER, 0n), towerId, accountInfo[1], accountInfo[2]], account);
+    console.log("processed at:", processStamp);
+  } catch(e) {
+    console.log("mintTower error at id:", towerId);
+  }
+}
 
 
-  // position of the tower we would like to place
-  state = await rpc.queryState(account);
-
-  nonce = BigInt(JSON.parse(state.data).player.nonce);
-
-  let pos = x<<32n + y;
-  await rpc.sendTransaction([createCommand(nonce, CMD_PLACE_TOWER, 0n), towerId, pos, 0n], account);
-
-  state = await rpc.queryState(account);
-  nonce = BigInt(JSON.parse(state.data).player.nonce);
-  console.log(`player nonce is ${nonce}`);
+async function main() {
+  //sending_transaction([0n,0n,0n,0n], "1234");
+  let x = 0n;
+  for (let y=0n; y<6n; y++) {
+    let pos = (x<<32n) + y;
+    let towerId = 1038n + y;
+    let nonce = await getNonce();
+    mintTower(towerId, nonce);
+    nonce = await getNonce();
+    try {
+      let processStamp = await rpc.sendTransaction([createCommand(nonce, CMD_PLACE_TOWER, 0n), towerId, pos, 0n], account);
+        console.log("place tower processed at:", processStamp);
+    } catch(e) {
+      console.log("place tower error:", pos, towerId);
+    }
+  }
+  let state:any = await rpc.queryState(account);
+  let data = JSON.parse(state.data);
+  console.log(`player final state is ${data}`);
 }
 
 main();
