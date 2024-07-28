@@ -1,6 +1,12 @@
+use wasm_bindgen::prelude::*;
+use zkwasm_rest_abi::*;
 pub mod config;
 pub mod game;
-pub mod render;
+pub mod player;
+pub mod settlement;
 pub mod tile;
 pub mod tx;
-mod zkmain;
+
+use crate::config::Config;
+use crate::game::{State, Transaction};
+zkwasm_rest_abi::create_zkwasm_apis!(Transaction, State, Config);

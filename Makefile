@@ -1,12 +1,21 @@
-JSFOLDER:=../src/games/towerdefence/js
+INSTALL_DIR=./ts/node_modules/zkwasm-ts-server/src/application
+RUNNING_DIR=./ts/node_modules/zkwasm-ts-server
+
 build:
-	wasm-pack build --release --out-name gameplay --out-dir pkg
-	cp pkg/gameplay.d.ts $(JSFOLDER)/gameplay.d.ts
-	cp pkg/gameplay_bg.wasm $(JSFOLDER)/gameplay_bg.wasm
-	cp pkg/gameplay_bg.wasm.d.ts $(JSFOLDER)/gameplay_bg.wasm.d.ts
-	cp pkg/gameplay_bg.js $(JSFOLDER)/gameplay_bg.js
+	wasm-pack build --release --out-name application --out-dir pkg
+	#wasm-opt -Oz -o $(INSTALL_DIR)/application_bg.wasm pkg/application_bg.wasm
+	cp pkg/application_bg.wasm $(INSTALL_DIR)/application_bg.wasm
+	cp pkg/application.d.ts $(INSTALL_DIR)/application.d.ts
+	cp pkg/application_bg.js $(INSTALL_DIR)/application_bg.js
+	cp pkg/application_bg.wasm.d.ts $(INSTALL_DIR)/application_bg.wasm.d.ts
+	cd $(RUNNING_DIR) && npx tsc && cd -
 
 clean:
 	rm -rf pkg
-	rm -rf $(JSFOLDER)/gameplay.d.ts
-	rm -rf $(JSFOLDER)/gameplay.wasm_bg.js
+	rm -rf $(INSTALL_DIR)/application_bg.wasm
+	rm -rf $(INSTALL_DIR)/application.d.ts
+	rm -rf $(INSTALL_DIR)/application_bg.js
+	rm -rf $(INSTALL_DIR)/application_bg.wasm.d.ts
+
+run:
+	node ./ts/node_modules/zkwasm-ts-server/src/service.js

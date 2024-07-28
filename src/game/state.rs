@@ -1,7 +1,3 @@
-use serde::Serialize;
-use zkwasm_rust_sdk::require;
-use zkwasm_rust_sdk::wasm_dbg;
-
 use super::event::Event;
 use super::object::Collector;
 use super::object::Dropped;
@@ -9,303 +5,358 @@ use super::object::Monster;
 use super::object::Object;
 use super::object::Spawner;
 use super::object::Tower;
-use crate::config::build_tower;
-use crate::config::UPGRADE_COST_MODIFIER;
-use crate::config::UPGRADE_MODIFIER;
+use super::ERROR_POSITION_OCCUPIED;
+use crate::player::TDPlayer;
+use crate::player::Owner;
+use crate::config::spawn_monster;
+use crate::config::CONFIG;
+use crate::config::SPWAN_INTERVAL;
+use crate::config::UPGRADE_COST;
+use crate::game::object::InventoryObject;
 use crate::tile::coordinate::Coordinate;
 use crate::tile::coordinate::RectCoordinate;
 use crate::tile::coordinate::RectDirection;
-use crate::tile::coordinate::Tile;
 use crate::tile::map::Map;
 use crate::tile::map::PositionedObject;
-
-#[derive(Clone, Serialize)]
-pub struct InventoryObject {
-    pub cost: u64,
-    pub upgrade_modifier: u64,
-    pub object: Object<RectDirection>,
-}
-
-impl InventoryObject {
-    fn new(object: Object<RectDirection>, cost: u64) -> Self {
-        Self {
-            cost,
-            upgrade_modifier: UPGRADE_COST_MODIFIER,
-            object,
-        }
-    }
-}
-
-const TOTAL_SPAWN: u64 = 20;
+use serde::Serialize;
+use zkwasm_rust_sdk::require;
+use crate::MERKLE_MAP;
+use crate::game::serialize::U64arraySerialize;
+use core::slice::IterMut;
 
 // The global state
 #[derive(Clone, Serialize)]
 pub struct State {
-    pub inventory: Vec<InventoryObject>,
-    pub treasure: u64,
-    pub monsters: u64, // total monsters needs to spawn
-    pub terminates: u64,
-    pub hp: u64,
-    pub map: Map<RectCoordinate, Object<RectDirection>>,
+    #[serde(skip_serializing)]
+    pub id_allocator: u64,
+    pub map: Map<RectCoordinate>,
+    pub monsters: Vec<PositionedObject<RectCoordinate, Monster>>,
+    pub drops: Vec<PositionedObject<RectCoordinate, Dropped>>,
+    pub collectors: Vec<PositionedObject<RectCoordinate, Collector>>,
+    pub spawners: Vec<PositionedObject<RectCoordinate, Spawner>>,
+    pub towers: Vec<PositionedObject<RectCoordinate, InventoryObject>>,
     pub events: Vec<Event>,
 }
 
-pub static mut GLOBAL: State = State {
-    inventory: vec![],
-    treasure: 100,
-    hp: 0,
-    monsters: TOTAL_SPAWN,
-    terminates: TOTAL_SPAWN,
-    map: Map {
-        width: 12,
-        height: 8,
-        tiles: vec![],
-        objects: vec![],
-    },
-    events: vec![],
-};
-
-fn cor_to_index(x: usize, y: usize) -> usize {
-    x + y * 12
-}
-
-pub fn init_state() {
-    let global = unsafe { &mut GLOBAL };
-    let tower = build_tower(1, RectDirection::Top);
-    let tower_left = build_tower(1, RectDirection::Left);
-    let tower_right = build_tower(1, RectDirection::Right);
-    let tower_bottom = build_tower(1, RectDirection::Bottom);
-
-    global.inventory = vec![
-        InventoryObject::new(Object::Tower(tower.clone()), 20),
-        InventoryObject::new(Object::Tower(tower_left.clone()), 20),
-        InventoryObject::new(Object::Tower(tower_right.clone()), 20),
-        InventoryObject::new(Object::Tower(tower_bottom.clone()), 20),
-    ];
-
-    let monster = Monster::new(10, 5, 1);
-    let spawner = Spawner::new(4, 4);
-    let spawner2 = Spawner::new(4, 4);
-    let collector = Collector::new(5);
-    for _ in 0..96 {
-        global
-            .map
-            .tiles
-            .push(Tile::new(RectCoordinate::new(0, 0), None))
+impl State {
+    pub fn store(&self) {
+        let kvpair = unsafe { &mut MERKLE_MAP };
+        let monsters_data = self.monsters.iter().map(|x| x.to_u64_array()).flatten().collect::<Vec<u64>>();
+        let spawners_data = self.spawners.iter().map(|x| x.to_u64_array()).flatten().collect::<Vec<u64>>();
+        let towers_data = self.towers.iter().map(|x| x.to_u64_array()).flatten().collect::<Vec<u64>>();
+        let data = vec![vec![self.id_allocator, self.monsters.len() as u64, self.spawners.len() as u64, self.towers.len() as u64], monsters_data, spawners_data, towers_data]
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+        //zkwasm_rust_sdk::dbg!("stored data: {:?}\n", data);
+        let splen = self.spawners.len();
+        //zkwasm_rust_sdk::dbg!("spawners: {}\n", splen);
+        let mlen = self.monsters.len();
+        //zkwasm_rust_sdk::dbg!("monsters: {}\n", mlen);
+        kvpair.set(&[0,0,0,0], &data);
+        let root = kvpair.merkle.root;
+        //zkwasm_rust_sdk::dbg!("after store: {:?}\n", root);
+    }
+    pub fn fetch(&mut self) -> bool {
+        let kvpair = unsafe { &mut MERKLE_MAP };
+        let mut data = kvpair.get(&[0,0,0,0]);
+        if data.is_empty() {
+            false
+        } else {
+            let mut data = data.iter_mut();
+            //zkwasm_rust_sdk::dbg!("stored data: {:?}\n", data);
+            self.id_allocator = *data.next().unwrap();
+            let monsters_len = *data.next().unwrap() as usize;
+            let spawners_len = *data.next().unwrap() as usize;
+            let towers_len = *data.next().unwrap() as usize;
+            //zkwasm_rust_sdk::dbg!("stored length: {} {} {}\n", monsters_len, spawners_len, towers_len);
+            self.monsters = Vec::with_capacity(monsters_len);
+            self.spawners = Vec::with_capacity(spawners_len);
+            self.towers = Vec::with_capacity(towers_len);
+            for _ in 0..monsters_len {
+                let obj = PositionedObject::<RectCoordinate, Monster>::from_u64_array(&mut data);
+                self.monsters.push(obj);
+            }
+            for _ in 0..spawners_len {
+                let obj = PositionedObject::<RectCoordinate, Spawner>::from_u64_array(&mut data);
+                self.map.set_occupy(&obj.position, 1);
+                self.spawners.push(obj);
+            }
+            for _ in 0..towers_len {
+                let obj = PositionedObject::<RectCoordinate, InventoryObject>::from_u64_array(&mut data);
+                self.map.set_occupy(&obj.position, 1);
+                self.towers.push(obj);
+            }
+            true
+        }
+    }
+    pub fn place_spawner_at(
+        &mut self,
+        object: Spawner,
+        position: RectCoordinate,
+    ) -> &PositionedObject<RectCoordinate, Spawner> {
+        self.map.set_occupy(&position, 1);
+        self.id_allocator += 1;
+        self.spawners
+            .push(PositionedObject::new(object, position, self.id_allocator));
+        self.spawners.get(self.spawners.len() - 1).unwrap()
     }
 
-    /*
-    global.map.set_feature(cor_to_index(0,0), Some(RectDirection::Bottom));
-    global.map.set_feature(cor_to_index(0,1), Some(RectDirection::Right));
-    global.map.set_feature(cor_to_index(1,1), Some(RectDirection::Right));
-    */
-    global
-        .map
-        .set_feature(cor_to_index(2, 1), Some(RectDirection::Bottom));
+    pub fn place_collector_at(
+        &mut self,
+        object: Collector,
+        position: RectCoordinate,
+    ) -> &PositionedObject<RectCoordinate, Collector> {
+        self.map.set_occupy(&position, 1);
+        self.id_allocator += 1;
+        self.collectors
+            .push(PositionedObject::new(object, position, self.id_allocator));
+        self.collectors.get(self.collectors.len() - 1).unwrap()
+    }
 
-    global
-        .map
-        .set_feature(cor_to_index(4, 0), Some(RectDirection::Bottom));
-    global
-        .map
-        .set_feature(cor_to_index(4, 1), Some(RectDirection::Left));
-    global
-        .map
-        .set_feature(cor_to_index(3, 1), Some(RectDirection::Left));
+    pub fn place_tower_at(
+        &mut self,
+        object: InventoryObject,
+        position: RectCoordinate,
+    ) -> Result<&PositionedObject<RectCoordinate, InventoryObject>, u32> {
+        if self.map.get_occupy(&position) != 0 {
+            Err(ERROR_POSITION_OCCUPIED)
+        } else {
+            self.id_allocator += 1;
+            self.map.set_occupy(&position, 1);
+            self.towers
+                .push(PositionedObject::new(object, position, self.id_allocator));
+            Ok(self.towers.get(self.towers.len() - 1).unwrap())
+        }
+    }
 
-    global
-        .map
-        .set_feature(cor_to_index(2, 2), Some(RectDirection::Bottom));
-    global
-        .map
-        .set_feature(cor_to_index(2, 3), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(3, 3), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(4, 3), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(5, 3), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(6, 3), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(7, 3), Some(RectDirection::Bottom));
-    global
-        .map
-        .set_feature(cor_to_index(7, 4), Some(RectDirection::Bottom));
-    global
-        .map
-        .set_feature(cor_to_index(7, 5), Some(RectDirection::Left));
-    global
-        .map
-        .set_feature(cor_to_index(6, 5), Some(RectDirection::Left));
-    global
-        .map
-        .set_feature(cor_to_index(5, 5), Some(RectDirection::Left));
-    global
-        .map
-        .set_feature(cor_to_index(4, 5), Some(RectDirection::Left));
-    global
-        .map
-        .set_feature(cor_to_index(3, 5), Some(RectDirection::Bottom));
-    global
-        .map
-        .set_feature(cor_to_index(3, 6), Some(RectDirection::Bottom));
-    global
-        .map
-        .set_feature(cor_to_index(3, 7), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(4, 7), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(5, 7), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(6, 7), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(7, 7), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(8, 7), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(9, 7), Some(RectDirection::Right));
-    global
-        .map
-        .set_feature(cor_to_index(10, 7), Some(RectDirection::Top));
-    global
-        .map
-        .set_feature(cor_to_index(10, 6), Some(RectDirection::Top));
-    global
-        .map
-        .set_feature(cor_to_index(10, 5), Some(RectDirection::Top));
-    global
-        .map
-        .set_feature(cor_to_index(10, 4), Some(RectDirection::Top));
-    global
-        .map
-        .set_feature(cor_to_index(10, 3), Some(RectDirection::Top));
-    global
-        .map
-        .set_feature(cor_to_index(10, 2), Some(RectDirection::Top));
-    global
-        .map
-        .set_feature(cor_to_index(10, 1), Some(RectDirection::Top));
+    pub fn remove_tower_at(
+        &mut self,
+        index: usize,
+    ) -> PositionedObject<RectCoordinate, InventoryObject> {
+        let tower = self.towers[index].clone();
+        self.map.set_occupy(&tower.position, 0);
+        self.towers.swap_remove(index)
+    }
 
-    //global.map.spawn_at(Object::Spawner(spawner), RectCoordinate::new(0,0));
-    global
-        .map
-        .spawn_at(Object::Spawner(spawner2), RectCoordinate::new(4, 0));
-    global
-        .map
-        .spawn_at(Object::Collector(collector), RectCoordinate::new(10, 0));
+    pub fn spawn_monster_at(
+        &mut self,
+        object: Monster,
+        position: RectCoordinate,
+    ) -> &PositionedObject<RectCoordinate, Monster> {
+        self.id_allocator += 1;
+        self.monsters
+            .push(PositionedObject::new(object, position, self.id_allocator));
+        self.monsters.get(self.monsters.len() - 1).unwrap()
+    }
+
+    pub fn remove_monster(&mut self, index: usize) -> PositionedObject<RectCoordinate, Monster> {
+        self.monsters.swap_remove(index)
+    }
+
+    pub fn spawn_dropped_at(
+        &mut self,
+        object: Dropped,
+        position: RectCoordinate,
+    ) -> &PositionedObject<RectCoordinate, Monster> {
+        self.id_allocator += 1;
+        self.drops
+            .push(PositionedObject::new(object, position, self.id_allocator));
+        self.monsters.get(self.monsters.len() - 1).unwrap()
+    }
+
+    pub fn remove_dropped(&mut self, index: usize) -> PositionedObject<RectCoordinate, Dropped> {
+        self.drops.swap_remove(index)
+    }
+
+    pub fn spawn(&mut self, obj: PositionedObject<RectCoordinate, Object<RectDirection>>) {
+        match obj.object {
+            Object::Monster(m) => self.spawn_monster_at(m, obj.position),
+            Object::Dropped(d) => self.spawn_dropped_at(d, obj.position),
+            _ => unreachable!(),
+        };
+    }
 }
 
-pub fn handle_place_tower(inventory_idx: usize, pos: usize) {
-    let global = unsafe { &mut GLOBAL };
-    unsafe { require(global.inventory[inventory_idx].cost <= global.treasure) };
-    global.treasure -= global.inventory[inventory_idx].cost;
+pub fn handle_place_tower(iid: &[u64; 4], pos: usize) -> Result<(), u32> {
+    let global = unsafe { &mut crate::config::GLOBAL };
+    let inventory_obj = InventoryObject::get(iid);
     let position = global.map.coordinate_of_tile_index(pos);
-    global
-        .map
-        .spawn_at(global.inventory[inventory_idx].object.clone(), position);
+    global.place_tower_at(inventory_obj.unwrap(), position)?;
+    Ok(())
 }
 
-pub fn handle_upgrade_inventory(inventory_idx: usize) {
-    let global = unsafe { &mut GLOBAL };
-    let modifier = global.inventory[inventory_idx].upgrade_modifier;
-    let upgrade_cost = global.inventory[inventory_idx].cost * modifier;
-    global.inventory[inventory_idx].upgrade_modifier = modifier * modifier;
-    unsafe { require(global.inventory[inventory_idx].cost <= global.treasure) };
-    global.inventory[inventory_idx].cost *= 4;
-    global.treasure -= upgrade_cost;
-    global.inventory[inventory_idx].object.upgrade()
+pub fn handle_update_inventory(iid: &[u64; 4], feature: u64, pid: &[u64; 2]) {
+    let mut inventory_obj = InventoryObject::get(iid);
+    if let Some(inventory_obj) = inventory_obj.as_mut() {
+        let tower = inventory_obj.object.get_the_tower_mut();
+        tower.owner[0] = pid[0];
+        tower.owner[1] = pid[1];
+        inventory_obj.store();
+    } else {
+        let mut tower = CONFIG.standard_towers[feature as usize].clone();
+        tower.owner[0] = pid[0];
+        tower.owner[1] = pid[1];
+        let inventory_obj = InventoryObject::new(iid.clone(), Object::Tower(tower));
+        inventory_obj.store();
+    }
+    let mut player_opt = TDPlayer::get_from_pid(pid);
+    if let Some(player) = player_opt.as_mut() {
+        if !player.owns(iid[0]) {
+            player.data.inventory.push(iid[0]);
+            player.store()
+        }
+    } else {
+        let mut player = TDPlayer::new_from_pid(*pid);
+        player.data.inventory.push(iid[0]);
+        player.nonce = 1;
+        player.store()
+    }
 }
 
-pub fn handle_run() {
-    let global = unsafe { &mut GLOBAL };
-    let map = unsafe { &GLOBAL.map };
-    let objs = &mut global.map.objects;
-    let mut collector = vec![];
-    for obj in objs.iter() {
-        if let Object::Collector(_) = obj.object.clone() {
+pub fn handle_withdraw_tower(nonce: u64, iid: &[u64; 4], pkey: &[u64; 4]) {
+    let inventory_obj = InventoryObject::get(iid);
+    if inventory_obj.is_none() {
+        unreachable!()
+    } else {
+        let obj = inventory_obj.unwrap().object.clone();
+        let tower = obj.get_the_tower();
+        unsafe {
+            zkwasm_rust_sdk::require(tower.owner[0] == pkey[1]);
+            zkwasm_rust_sdk::require(tower.owner[1] == pkey[2]);
+        }
+
+        let mut player = TDPlayer::get(pkey).unwrap();
+        player.check_and_inc_nonce(nonce);
+        let index_opt = player.data.inventory.iter().position(|&x| x == iid[0]);
+        if let Some(index) = index_opt {
+            player.data.inventory.swap_remove(index);
+            player.store()
+        } else {
+            player.store()
+        }
+    }
+}
+
+
+pub fn handle_drop_tower(iid: &[u64; 4]) {
+    let global = unsafe { &mut crate::config::GLOBAL };
+    //let inventory_obj = InventoryObject::get(iid);
+    let pos = global
+        .towers
+        .iter()
+        .position(|x| x.object.object_id == *iid);
+    if let Some(index) = pos {
+        global.remove_tower_at(index);
+    }
+}
+
+pub fn handle_collect_rewards(player: &mut TDPlayer, iid: &[u64; 4]) {
+    //let inventory_obj = InventoryObject::get(iid);
+    let mut inventory_obj = InventoryObject::get(iid).unwrap();
+    player.data.reward += inventory_obj.reward;
+    inventory_obj.reward = 0;
+    inventory_obj.store();
+}
+
+
+
+pub fn handle_upgrade_inventory(iid: &[u64; 4]) {
+    //let global = unsafe { &mut crate::config::GLOBAL };
+    let mut inventory_obj = InventoryObject::get(iid).unwrap();
+    let tower = inventory_obj.object.get_the_tower_mut();
+    unsafe {require(tower.lvl < 3)};
+    let cost = UPGRADE_COST[tower.lvl as usize];
+    unsafe {require(inventory_obj.reward >= cost)};
+    inventory_obj.reward -= cost;
+    inventory_obj.object.upgrade();
+    inventory_obj.store();
+}
+
+impl State {
+    pub fn run(&mut self) {
+        let splen = self.spawners.len();
+        let mlen = self.monsters.len();
+        zkwasm_rust_sdk::dbg!("run monsters: {}\n", mlen);
+
+        let mut collector = vec![];
+
+        // figureout all the collectors in the state
+        for obj in self.collectors.iter() {
             collector.push(obj.position.clone())
         }
-    }
-    let mut termination = vec![];
-    let mut spawn = vec![];
-    let mut tower_range: Vec<(Tower<RectDirection>, RectCoordinate, usize, usize, usize)> = vec![];
+        let mut termination_monster = vec![];
+        let mut termination_drop = vec![];
+        let mut spawn = vec![];
+        let mut tower_range: Vec<(Tower<RectDirection>, RectCoordinate, usize, usize, usize)> =
+            vec![];
 
-    let mut reward = 0;
-    let mut damage = 0;
-    let mut terminates = global.terminates;
-    let mut monsters = global.monsters;
-
-    for (index, obj) in objs.iter_mut().enumerate() {
-        if let Object::Monster(m) = &mut obj.object {
+        for (index, obj) in self.monsters.iter_mut().enumerate() {
+            //let m = &obj.object;
             if collector.contains(&obj.position) {
-                terminates -= 1;
-                termination.push(index);
-                damage += m.hp;
+                zkwasm_rust_sdk::dbg!("terminate: {}\n", index);
+                termination_monster.push(index);
             } else {
-                let index = map.index_of_tile_coordinate(&obj.position);
-                let feature = map.get_feature(index);
+                let index = self.map.index_of_tile_coordinate(&obj.position);
+                let feature = self.map.get_feature(index);
                 if let Some(f) = feature {
-                    unsafe { wasm_dbg(f.clone() as u64) };
+                    //unsafe { wasm_dbg(f.clone() as u64) };
                     obj.position = obj.position.adjacent(f)
                 }
             }
-        } else if let Object::Dropped(dropped) = &mut obj.object {
+        }
+
+        for (index, obj) in self.drops.iter_mut().enumerate() {
+            //let dropped = &obj.object;
             if collector.contains(&obj.position) {
-                reward += dropped.delta;
-                terminates -= 1;
-                termination.push(index);
+                //terminates -= 1;
+                termination_drop.push(index);
             } else {
-                let index = map.index_of_tile_coordinate(&obj.position);
-                let feature = map.get_feature(index);
+                let index = self.map.index_of_tile_coordinate(&obj.position);
+                let feature = self.map.get_feature(index);
                 if let Some(f) = feature {
-                    unsafe { wasm_dbg(f.clone() as u64) };
+                    //unsafe { wasm_dbg(f.clone() as u64) };
                     obj.position = obj.position.adjacent(f)
                 }
             }
-        } else if let Object::Spawner(spawner) = &mut obj.object {
-            if spawner.count == 0 && monsters > 0 {
-                monsters = monsters - 1;
+        }
+
+        for (_index, obj) in self.spawners.iter_mut().enumerate() {
+            let spawner = &mut obj.object;
+            if spawner.rate == 0 {
+                spawner.count += 1;
+                let monster = spawn_monster(spawner.count);
+                let inner_obj = Object::Monster(monster);
+                self.id_allocator += 1;
                 spawn.push(PositionedObject::new(
-                    Object::Monster(Monster::new(10, 1, 1)),
+                    inner_obj,
                     obj.position.clone(),
+                    self.id_allocator,
                 ));
-                spawner.count = spawner.rate
+                spawner.rate = SPWAN_INTERVAL;
             } else {
-                spawner.count -= 1
+                spawner.rate -= 1
+            }
+            // TODO fill object spawner
+        }
+
+        for (index, obj) in self.towers.iter_mut().enumerate() {
+            if let Object::Tower(tower) = &mut obj.object.object {
+                if tower.count == 0 {
+                    tower_range.push((
+                        tower.clone(),
+                        obj.position.clone(),
+                        usize::max_value(),
+                        index,
+                        usize::max_value(),
+                    ));
+                } else {
+                    tower.count -= 1;
+                }
             }
         }
-    }
 
-    for (index, obj) in objs.iter_mut().enumerate() {
-        if let Object::Tower(tower) = &mut obj.object {
-            if tower.count == 0 {
-                tower_range.push((
-                    tower.clone(),
-                    obj.position.clone(),
-                    usize::max_value(),
-                    index,
-                    usize::max_value(),
-                ));
-            } else {
-                tower.count -= 1;
-            }
-        }
-    }
-
-    for (index, obj) in objs.iter_mut().enumerate() {
-        if let Object::Monster(_) = &mut obj.object {
+        for (index, obj) in self.monsters.iter_mut().enumerate() {
             for t in tower_range.iter_mut() {
                 let range = t.0.range(&t.1, &obj.position);
                 if range < t.2 {
@@ -314,49 +365,55 @@ pub fn handle_run() {
                 }
             }
         }
-    }
 
-    let mut events = vec![];
+        let mut events = vec![];
 
-    for t in tower_range.iter_mut() {
-        if t.4 != usize::max_value() {
-            if let Object::Monster(m) = &mut objs[t.4].object {
+        for t in tower_range.iter_mut() {
+            if t.4 != usize::max_value() {
+                let m = &mut self.monsters[t.4].object;
+                let hit_reward = m.hit;
                 if m.hp < t.0.power {
                     m.hp = 0;
                 } else {
                     m.hp -= t.0.power;
                 }
                 if m.hp == 0 {
-                    termination.push(t.4);
+                    self.towers[t.3].object.reward += m.kill; // kill reward
+                    termination_monster.push(t.4);
+                    self.id_allocator += 1;
                     spawn.push(PositionedObject::new(
                         Object::Dropped(Dropped::new(10)),
-                        objs[t.4].position.clone(),
+                        self.monsters[t.4].position.clone(),
+                        self.id_allocator,
                     ));
                 }
-                events.push(Event::Attack(t.1.repr(), objs[t.4].position.repr(), 0))
-            }
-            if let Object::Tower(tower) = &mut objs[t.3].object {
-                tower.count = tower.cooldown;
+                events.push(Event::Attack(
+                    t.1.repr(),
+                    self.monsters[t.4].position.repr(),
+                    0,
+                ));
+                if let Object::Tower(tower) = &mut self.towers[t.3].object.object {
+                    tower.count = tower.cooldown;
+                }
+                self.towers[t.3].object.reward += hit_reward; // hit reward
+                self.towers[t.3].object.store();
             }
         }
+
+        termination_monster.reverse();
+        for idx in termination_monster {
+            self.remove_monster(idx);
+        }
+
+        termination_drop.reverse();
+        for idx in termination_drop {
+            self.remove_monster(idx);
+        }
+
+        for obj in spawn.into_iter() {
+            self.spawn(obj);
+        }
+
+        self.events = events;
     }
-
-    termination.reverse();
-    for idx in termination {
-        global.map.remove(idx);
-    }
-
-    global.terminates = terminates;
-
-    for obj in spawn.into_iter() {
-        global.map.spawn(obj);
-    }
-
-    global.monsters = monsters;
-
-    if reward > damage {
-        global.treasure += reward - damage;
-    }
-
-    global.events = events;
 }

@@ -1,54 +1,74 @@
 use super::coordinate::Coordinate;
 use super::coordinate::Tile;
+use crate::game::bigint_serializer;
+use crate::game::object::Object;
 use serde::Serialize;
+use crate::game::serialize::U64arraySerialize;
+use core::slice::IterMut;
 
 #[derive(Clone, Serialize)]
 pub struct PositionedObject<C: Coordinate, Object: Clone> {
+    #[serde(serialize_with = "bigint_serializer")]
+    pub id: u64, // unique id in the map
     pub position: C,
     pub object: Object,
 }
 
 impl<C: Coordinate, O: Clone> PositionedObject<C, O> {
-    pub fn new(obj: O, pos: C) -> Self {
+    pub fn new(obj: O, pos: C, id: u64) -> Self {
         PositionedObject {
+            id,
             object: obj,
             position: pos,
         }
     }
 }
 
-#[derive(Clone, Serialize)]
-pub struct Map<C: Coordinate, O: Clone> {
-    pub width: usize,
-    pub height: usize,
-    pub tiles: Vec<Tile<C, Option<C::Direction>>>,
-    pub objects: Vec<PositionedObject<C, O>>,
+fn cor_to_u64<C: Coordinate>(c: &C) -> u64 {
+    let (x, y) = c.repr();
+    ((x as u64) << 32) + ((y as u32) as u64)
 }
 
-impl<C: Coordinate, O: Clone> Map<C, O> {
-    pub fn new(
-        width: usize,
-        height: usize,
-        tiles: Vec<Tile<C, Option<C::Direction>>>,
-        objects: Vec<PositionedObject<C, O>>,
-    ) -> Self {
+fn u64_to_cor<C: Coordinate>(u: u64) -> C {
+    C::new((u >> 32) as i64, (u & 0xffffffff) as i64)
+}
+
+
+impl<C: Coordinate, O: Clone + U64arraySerialize> U64arraySerialize for PositionedObject<C, O> {
+    fn to_u64_array(&self) -> Vec<u64> {
+        let index = cor_to_u64(&self.position);
+        let mut data = vec![self.id, index];
+        data.append(&mut self.object.to_u64_array());
+        data
+    }
+    fn from_u64_array(data: &mut IterMut<u64>) -> Self {
+        let id = *(data.next().unwrap());
+        let position = u64_to_cor(*(data.next().unwrap()));
+        let object = O::from_u64_array(data);
+        PositionedObject {
+            id,
+            position,
+            object,
+        }
+    }
+}
+
+#[derive(Clone, Serialize)]
+pub struct Map<C: Coordinate> {
+    pub width: usize,
+    pub height: usize,
+    pub tiles: Vec<Tile<Option<C::Direction>>>,
+}
+
+impl<C: Coordinate> Map<C> {
+    pub fn new(width: usize, height: usize, tiles: Vec<Tile<Option<C::Direction>>>) -> Self {
         Map {
             width,
             height,
             tiles,
-            objects,
         }
     }
-    pub fn spawn_at(&mut self, object: O, position: C) -> &PositionedObject<C, O> {
-        self.objects.push(PositionedObject::new(object, position));
-        self.objects.get(self.objects.len() - 1).unwrap()
-    }
-    pub fn spawn(&mut self, p: PositionedObject<C, O>) {
-        self.objects.push(p)
-    }
-    pub fn remove(&mut self, index: usize) -> PositionedObject<C, O> {
-        self.objects.swap_remove(index)
-    }
+
     pub fn coordinate_of_tile_index(&self, index: usize) -> C {
         C::new((index % self.width) as i64, (index / self.width) as i64)
     }
@@ -66,7 +86,18 @@ impl<C: Coordinate, O: Clone> Map<C, O> {
         self.tiles.get(index).unwrap().feature.clone()
     }
 
-    pub fn get_neighbours(
+    pub fn set_occupy(&mut self, cor: &C, indicator: u32) {
+        let index = self.index_of_tile_coordinate(cor);
+        self.tiles.get_mut(index).unwrap().occupied = indicator;
+    }
+
+    pub fn get_occupy(&mut self, cor: &C) -> u32 {
+        let index = self.index_of_tile_coordinate(cor);
+        self.tiles.get_mut(index).unwrap().occupied
+    }
+
+    /*
+    pub fn get_neighbours<O: Clone>(
         &mut self,
         pos: &PositionedObject<C, O>,
         distance: u64,
@@ -82,4 +113,5 @@ impl<C: Coordinate, O: Clone> Map<C, O> {
         }
         r
     }
+    */
 }
