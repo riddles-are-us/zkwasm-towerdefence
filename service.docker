@@ -17,6 +17,13 @@ RUN apt-get update && apt-get install -y \
     libclang-dev \
     curl
 
+# Install supervisor
+RUN apt-get update && apt-get install -y supervisor && apt-get clean
+
+# Create the supervisor configuration directory
+RUN mkdir -p /etc/supervisor/conf.d
+COPY supervisord.conf /etc/supervisor/supervisord.conf
+
 
 # Set the working directory inside the container
 WORKDIR /usr/src/
@@ -41,5 +48,5 @@ COPY ./start.sh ./start.sh
 EXPOSE 3000
 
 # Run the application
-CMD ["sh", "start.sh"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 
