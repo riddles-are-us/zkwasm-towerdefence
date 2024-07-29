@@ -20,10 +20,6 @@ RUN apt-get update && apt-get install -y \
 # Install supervisor
 RUN apt-get update && apt-get install -y supervisor && apt-get clean
 
-# Create the supervisor configuration directory
-RUN mkdir -p /etc/supervisor/conf.d
-COPY supervisord.conf /etc/supervisor/supervisord.conf
-
 
 # Set the working directory inside the container
 WORKDIR /usr/src/
@@ -39,8 +35,11 @@ RUN cargo build --release
 # Set the working directory inside the container
 WORKDIR /usr/src/zkwasm-typescript-mini-server
 
+# Create the supervisor configuration directory
+RUN mkdir -p /etc/supervisor/conf.d
+COPY ./deploy/supervisord.conf /etc/supervisor/supervisord.conf
+
 COPY ./ts ./zkwasm-ts-server
-COPY ./start.sh ./start.sh
 
 #WORKDIR /usr/src/ts
 #ENV MERKLE_SERVER=zkwasm-server:3030
