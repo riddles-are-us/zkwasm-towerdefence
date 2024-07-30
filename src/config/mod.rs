@@ -86,6 +86,7 @@ const HEIGHT: usize = 8;
 
 pub static mut GLOBAL: State = State {
     id_allocator: 0,
+    counter: 0,
     map: Map {
         width: WIDTH,
         height: HEIGHT,

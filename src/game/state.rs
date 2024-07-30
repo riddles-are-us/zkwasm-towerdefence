@@ -29,6 +29,7 @@ use core::slice::IterMut;
 pub struct State {
     #[serde(skip_serializing)]
     pub id_allocator: u64,
+    pub counter: u64,
     pub map: Map<RectCoordinate>,
     pub monsters: Vec<PositionedObject<RectCoordinate, Monster>>,
     pub drops: Vec<PositionedObject<RectCoordinate, Dropped>>,
@@ -44,7 +45,7 @@ impl State {
         let monsters_data = self.monsters.iter().map(|x| x.to_u64_array()).flatten().collect::<Vec<u64>>();
         let spawners_data = self.spawners.iter().map(|x| x.to_u64_array()).flatten().collect::<Vec<u64>>();
         let towers_data = self.towers.iter().map(|x| x.to_u64_array()).flatten().collect::<Vec<u64>>();
-        let data = vec![vec![self.id_allocator, self.monsters.len() as u64, self.spawners.len() as u64, self.towers.len() as u64], monsters_data, spawners_data, towers_data]
+        let data = vec![vec![self.id_allocator, self.counter, self.monsters.len() as u64, self.spawners.len() as u64, self.towers.len() as u64], monsters_data, spawners_data, towers_data]
             .into_iter()
             .flatten()
             .collect::<Vec<_>>();
@@ -66,6 +67,7 @@ impl State {
             let mut data = data.iter_mut();
             //zkwasm_rust_sdk::dbg!("stored data: {:?}\n", data);
             self.id_allocator = *data.next().unwrap();
+            self.counter = *data.next().unwrap();
             let monsters_len = *data.next().unwrap() as usize;
             let spawners_len = *data.next().unwrap() as usize;
             let towers_len = *data.next().unwrap() as usize;
@@ -275,6 +277,8 @@ pub fn handle_upgrade_inventory(iid: &[u64; 4]) {
 
 impl State {
     pub fn run(&mut self) {
+        self.counter += 1;
+
         let splen = self.spawners.len();
         let mlen = self.monsters.len();
         zkwasm_rust_sdk::dbg!("run monsters: {}\n", mlen);
