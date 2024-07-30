@@ -44,8 +44,17 @@ impl State {
         let kvpair = unsafe { &mut MERKLE_MAP };
         let monsters_data = self.monsters.iter().map(|x| x.to_u64_array()).flatten().collect::<Vec<u64>>();
         let spawners_data = self.spawners.iter().map(|x| x.to_u64_array()).flatten().collect::<Vec<u64>>();
+        let collectors_data = self.collectors.iter().map(|x| x.to_u64_array()).flatten().collect::<Vec<u64>>();
         let towers_data = self.towers.iter().map(|x| x.to_u64_array()).flatten().collect::<Vec<u64>>();
-        let data = vec![vec![self.id_allocator, self.counter, self.monsters.len() as u64, self.spawners.len() as u64, self.towers.len() as u64], monsters_data, spawners_data, towers_data]
+        let data = vec![
+            vec![
+                self.id_allocator,
+                self.counter,
+                self.monsters.len() as u64,
+                self.spawners.len() as u64,
+                self.collectors.len() as u64,
+                self.towers.len() as u64
+            ], monsters_data, spawners_data, collectors_data, towers_data]
             .into_iter()
             .flatten()
             .collect::<Vec<_>>();
@@ -70,10 +79,12 @@ impl State {
             self.counter = *data.next().unwrap();
             let monsters_len = *data.next().unwrap() as usize;
             let spawners_len = *data.next().unwrap() as usize;
+            let collectors_len = *data.next().unwrap() as usize;
             let towers_len = *data.next().unwrap() as usize;
             //zkwasm_rust_sdk::dbg!("stored length: {} {} {}\n", monsters_len, spawners_len, towers_len);
             self.monsters = Vec::with_capacity(monsters_len);
             self.spawners = Vec::with_capacity(spawners_len);
+            self.collectors = Vec::with_capacity(collectors_len);
             self.towers = Vec::with_capacity(towers_len);
             for _ in 0..monsters_len {
                 let obj = PositionedObject::<RectCoordinate, Monster>::from_u64_array(&mut data);
@@ -83,6 +94,11 @@ impl State {
                 let obj = PositionedObject::<RectCoordinate, Spawner>::from_u64_array(&mut data);
                 self.map.set_occupy(&obj.position, 1);
                 self.spawners.push(obj);
+            }
+            for _ in 0..collectors_len {
+                let obj = PositionedObject::<RectCoordinate, Collector>::from_u64_array(&mut data);
+                self.map.set_occupy(&obj.position, 1);
+                self.collectors.push(obj);
             }
             for _ in 0..towers_len {
                 let obj = PositionedObject::<RectCoordinate, InventoryObject>::from_u64_array(&mut data);
