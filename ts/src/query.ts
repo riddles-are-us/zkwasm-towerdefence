@@ -24,7 +24,7 @@ async function main() {
   let state:any = await rpc.queryState(account);
   let data = JSON.parse(state.data);
 
-  console.log(data);
+//  console.log(data);
 
   console.log("player info:");
   console.log(data.player);
