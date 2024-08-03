@@ -3,7 +3,7 @@ use crate::player::{TDPlayer, Owner};
 use object::to_full_obj_id;
 use serde::{Serialize, Serializer};
 use zkwasm_rust_sdk::require;
-use crate::settlement::SettlementInfo;
+use crate::settlement::{SettlementInfo, WithdrawInfo};
 
 // Custom serializer for `u64` as a string.
 pub fn bigint_serializer<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
@@ -97,7 +97,8 @@ pub fn handle_command(commands: &[u64; 4], pkey: &[u64; 4]) -> Result<(), u32> {
             let amount = commands[1] & 0xffffffff;
             unsafe {require(player.data.reward >= amount)};
             player.data.reward -= amount;
-            SettlementInfo::append_settlement([commands[1], commands[2], commands[3]]);
+            let withdrawinfo = WithdrawInfo::new(&[commands[1], commands[2], commands[3]]);
+            SettlementInfo::append_settlement(withdrawinfo);
             player.store();
             Ok(())
         },

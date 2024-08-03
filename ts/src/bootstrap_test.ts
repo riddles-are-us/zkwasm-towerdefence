@@ -13,8 +13,8 @@ function createCommand(nonce: bigint, command: bigint, feature: bigint) {
 
 let account = "1234";
 
-//const rpc = new ZKWasmAppRpc("http://localhost:3000");
-const rpc = new ZKWasmAppRpc("http://114.119.187.224:8085");
+const rpc = new ZKWasmAppRpc("http://localhost:3000");
+//const rpc = new ZKWasmAppRpc("http://114.119.187.224:8085");
 
 interface MapSize {
   width: number,
