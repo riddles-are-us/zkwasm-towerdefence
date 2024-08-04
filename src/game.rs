@@ -2,8 +2,9 @@ use crate::config::init_state;
 use crate::player::{TDPlayer, Owner};
 use object::to_full_obj_id;
 use serde::{Serialize, Serializer};
+use zkwasm_rest_abi::WithdrawInfo;
 use zkwasm_rust_sdk::require;
-use crate::settlement::{SettlementInfo, WithdrawInfo};
+use crate::settlement::SettlementInfo;
 
 // Custom serializer for `u64` as a string.
 pub fn bigint_serializer<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
