@@ -1,6 +1,8 @@
 INSTALL_DIR=./ts/node_modules/zkwasm-ts-server/src/application
 RUNNING_DIR=./ts/node_modules/zkwasm-ts-server
 
+.PHONY: deploy
+
 build:
 	wasm-pack build --release --out-name application --out-dir pkg
 	wasm-opt -Oz -o $(INSTALL_DIR)/application_bg.wasm pkg/application_bg.wasm
