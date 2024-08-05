@@ -141,7 +141,7 @@ macro_rules! pr {
     ($idx: ident) => {
         let global = unsafe { &mut GLOBAL };
         let spawner = Spawner::new(0, 3);
-        let cor = Map::coordinate_of_tile_index($idx);
+        let cor = global.map.coordinate_of_tile_index($idx);
         global.place_spawner_at(spawner, cor);
         global.map.set_feature($idx, Some(RectDirection::Right));
         $idx += 1;
@@ -214,7 +214,7 @@ pub fn init_state() {
     if !stored {
         let mut m = 0;
 
-        pb!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m);
+        pr!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m);
         em!(m); mb!(m); em!(m); em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mb!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mb!(m); em!(m);
         em!(m); mb!(m); em!(m); em!(m); em!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m);
         em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m);
