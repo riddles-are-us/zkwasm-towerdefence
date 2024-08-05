@@ -81,8 +81,8 @@ lazy_static::lazy_static! {
     };
 }
 
-const WIDTH: usize = 12;
-const HEIGHT: usize = 8;
+const WIDTH: usize = 20;   // old = 12
+const HEIGHT: usize = 20;   // old = 8
 
 pub static mut GLOBAL: State = State {
     id_allocator: 0,
@@ -203,7 +203,7 @@ macro_rules! em {
 pub fn init_state() {
     let global = unsafe { &mut GLOBAL };
     if global.map.tiles.is_empty() {
-        for _ in 0..96 {
+        for _ in 0..WIDTH * HEIGHT {
             global
                 .map
                 .tiles
@@ -213,6 +213,29 @@ pub fn init_state() {
     let stored = global.fetch();
     if !stored {
         let mut m = 0;
+
+        pb!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m);
+        em!(m); mb!(m); em!(m); em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mb!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mb!(m); em!(m);
+        em!(m); mb!(m); em!(m); em!(m); em!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m);
+        em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m);
+        em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); ml!(m); ml!(m); em!(m); mb!(m); em!(m);
+        em!(m); mb!(m); ml!(m); ml!(m); ml!(m); ml!(m); ml!(m); ml!(m); ml!(m); ml!(m); ml!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m);
+        em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m);
+        em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m);
+        em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m);
+        em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m);
+        em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m);
+        em!(m); mb!(m); ml!(m); ml!(m); ml!(m); ml!(m); ml!(m); em!(m); mb!(m); ml!(m); ml!(m); ml!(m); ml!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m);
+        em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); ml!(m); ml!(m); em!(m); em!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m); mt!(m); ml!(m); ml!(m); em!(m);
+        em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); ml!(m); ml!(m); em!(m); em!(m); em!(m); em!(m); em!(m);
+        em!(m); mb!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mr!(m); mr!(m); mb!(m); em!(m);
+        em!(m); mb!(m); em!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m); mb!(m); em!(m);
+        em!(m); mb!(m); em!(m); mt!(m); ml!(m); ml!(m); ml!(m); ml!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m);
+        em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); ml!(m); ml!(m); ml!(m); ml!(m); em!(m);
+        em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m); em!(m); mr!(m); mr!(m); mt!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m);
+        em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); pc!(m);
+
+        /*
         em!(m); em!(m); pb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); pc!(m); em!(m);
         em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
         em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
@@ -221,6 +244,7 @@ pub fn init_state() {
         em!(m); em!(m); em!(m); em!(m); mb!(m); ml!(m); ml!(m); ml!(m); em!(m); em!(m); mt!(m); em!(m);
         em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
         em!(m); em!(m); em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m);
+        */
         //zkwasm_rust_sdk::dbg!("m is {}\n", m);
 
         if m != WIDTH * HEIGHT {
@@ -228,6 +252,30 @@ pub fn init_state() {
         }
     } else {
         let mut m = 0;
+
+        mb!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m);
+        em!(m); mb!(m); em!(m); em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mb!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mb!(m); em!(m);
+        em!(m); mb!(m); em!(m); em!(m); em!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m);
+        em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m);
+        em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); ml!(m); ml!(m); em!(m); mb!(m); em!(m);
+        em!(m); mb!(m); ml!(m); ml!(m); ml!(m); ml!(m); ml!(m); ml!(m); ml!(m); ml!(m); ml!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m);
+        em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m);
+        em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m);
+        em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m);
+        em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m);
+        em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m);
+        em!(m); mb!(m); ml!(m); ml!(m); ml!(m); ml!(m); ml!(m); em!(m); mb!(m); ml!(m); ml!(m); ml!(m); ml!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m);
+        em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); ml!(m); ml!(m); em!(m); em!(m); em!(m); mt!(m); em!(m); mb!(m); em!(m); mt!(m); ml!(m); ml!(m); em!(m);
+        em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); ml!(m); ml!(m); em!(m); em!(m); em!(m); em!(m); em!(m);
+        em!(m); mb!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mr!(m); mr!(m); mb!(m); em!(m);
+        em!(m); mb!(m); em!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m); mb!(m); em!(m);
+        em!(m); mb!(m); em!(m); mt!(m); ml!(m); ml!(m); ml!(m); ml!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m);
+        em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); mb!(m); ml!(m); ml!(m); ml!(m); ml!(m); em!(m);
+        em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m); em!(m); mr!(m); mr!(m); mt!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m);
+        em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); em!(m);
+
+
+        /*
         em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m);
         em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
         em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
@@ -236,6 +284,7 @@ pub fn init_state() {
         em!(m); em!(m); em!(m); em!(m); mb!(m); ml!(m); ml!(m); ml!(m); em!(m); em!(m); mt!(m); em!(m);
         em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mt!(m); em!(m);
         em!(m); em!(m); em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m);
+        */
         //zkwasm_rust_sdk::dbg!("m is {}\n", m);
         if m != WIDTH * HEIGHT {
             unreachable!();
