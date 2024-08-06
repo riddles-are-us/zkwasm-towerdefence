@@ -253,7 +253,7 @@ pub fn init_state() {
     } else {
         let mut m = 0;
 
-        mb!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m);
+        mr!(m); mb!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m); em!(m);
         em!(m); mb!(m); em!(m); em!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mb!(m); em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mr!(m); mb!(m); em!(m);
         em!(m); mb!(m); em!(m); em!(m); em!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m);
         em!(m); mr!(m); mr!(m); mr!(m); mr!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m); mt!(m); em!(m); em!(m); em!(m); em!(m); em!(m); mb!(m); em!(m);
