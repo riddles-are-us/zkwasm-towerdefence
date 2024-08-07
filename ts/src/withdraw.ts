@@ -88,35 +88,11 @@ async function withdrawRewards(address: string, amount: bigint, nonce: bigint) {
   }
 }
 
-async function collectRewardsFromTower(towerId: bigint, nonce: bigint) {
-  let accountInfo = new LeHexBN(query(account).pkx).toU64Array();
-  console.log("account info:", accountInfo);
-  try {
-    let processStamp = await rpc.sendTransaction([createCommand(nonce, CMD_COLLECT_REWARDS, 0n), towerId, accountInfo[1], accountInfo[2]], account);
-    console.log("collect rewards processed at:", processStamp);
-  } catch(e) {
-    if (e instanceof Error) {
-      console.log(e.message);
-    }
-    console.log("collect reward error at id:", towerId);
-  }
-}
-
-
 async function main() {
-  //sending_transaction([0n,0n,0n,0n], "1234");
-  for (let y=0n; y<6n; y++) {
-    let towerId = 1038n + y;
-    let nonce = await getNonce();
-    await collectRewardsFromTower(towerId, nonce);
-  }
+  let nonce = await getNonce();
+  await withdrawRewards("c177d1d314C8FFe1Ea93Ca1e147ea3BE0ee3E470", 123n, nonce);
   let state:any = await rpc.queryState(account);
   let data = JSON.parse(state.data);
-  console.log(`player final state is ${data}`);
-  let nonce = await getNonce();
-  await withdrawRewards("c177d1d314C8FFe1Ea93Ca1e147ea3BE0ee3E470", 223n, nonce);
-  state = await rpc.queryState(account);
-  data = JSON.parse(state.data);
   console.log(`player final state is ${data}`);
 }
 

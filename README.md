@@ -12,7 +12,7 @@ Step:
 [command = 0, reserved = 0, reserved = 0, reserved = 0]
 
 Place Tower:
-[command = 1, TowerID: u64, Position: u64 = [u32, u32], reserved = 0]
+[command = 1, TowerID: u64, Position: u64 = x + y mul width, reserved = 0]
 
 Claim Tower:
 [command = 2, TowerID: u64, reserved = 0, reserved = 0]

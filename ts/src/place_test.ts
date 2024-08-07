@@ -1,21 +1,19 @@
 //import initHostBind, * as hostbind from "./wasmbind/hostbind.js";
 import { query, ZKWasmAppRpc, LeHexBN } from "zkwasm-ts-server";
 import { Player } from "./api.js";
-
 let account = "2234";
 let player = new Player(account);
-
 async function main() {
   //sending_transaction([0n,0n,0n,0n], "1234");
   let map = await player.getMap();
-  for (let x=0n; x<15n; x++) {
-    for (let y=0n; y<6n; y++) {
-      let pos = x + y * BigInt(map.width);
-      let towerId = 1038n + y;
-      await player.mintTower(towerId);
-      await player.placeTower(towerId, pos, 0n);
-    }
-  }
+  let x = 2n;
+  let y = 2n;
+  let pos = x + y * BigInt(map.width);
+  let towerId = 10038n + pos;
+  //let towerId = 10038n + y;
+  await player.mintTower(towerId);
+  await player.placeTower(towerId, pos, 0n);
+  //await player.dropTower(towerId, pos);
 }
 
 main();
