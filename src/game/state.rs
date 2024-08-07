@@ -291,6 +291,13 @@ pub fn handle_upgrade_inventory(iid: &[u64; 4]) {
     inventory_obj.store();
 }
 
+fn insert_into_sorted<T: Ord>(vec: &mut Vec<T>, element: T) {
+    match vec.binary_search(&element) {
+        Ok(pos) => (),
+        Err(pos) => vec.insert(pos, element),
+    }
+}
+
 impl State {
     pub fn run(&mut self) {
         self.counter += 1;
@@ -314,8 +321,7 @@ impl State {
         for (index, obj) in self.monsters.iter_mut().enumerate() {
             //let m = &obj.object;
             if collector.contains(&obj.position) {
-                zkwasm_rust_sdk::dbg!("terminate: {}\n", index);
-                termination_monster.push(index);
+                insert_into_sorted(&mut termination_monster, index);
             } else {
                 let index = self.map.index_of_tile_coordinate(&obj.position);
                 let feature = self.map.get_feature(index);
@@ -398,8 +404,8 @@ impl State {
                     m.hp -= t.0.power;
                 }
                 if m.hp == 0 {
+                    insert_into_sorted(&mut termination_monster, t.4);
                     self.towers[t.3].object.reward += m.kill; // kill reward
-                    termination_monster.push(t.4);
                     self.id_allocator += 1;
                     spawn.push(PositionedObject::new(
                         Object::Dropped(Dropped::new(10)),
@@ -410,7 +416,7 @@ impl State {
                 events.push(Event::Attack(
                     t.1.repr(),
                     self.monsters[t.4].position.repr(),
-                    0,
+                    t.0.power,
                 ));
                 if let Object::Tower(tower) = &mut self.towers[t.3].object.object {
                     tower.count = tower.cooldown;
