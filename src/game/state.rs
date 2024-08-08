@@ -5,6 +5,7 @@ use super::object::Monster;
 use super::object::Object;
 use super::object::Spawner;
 use super::object::Tower;
+use super::ERROR_INVENTORY_NOT_FOUND;
 use super::ERROR_POSITION_OCCUPIED;
 use crate::player::TDPlayer;
 use crate::player::Owner;
@@ -134,7 +135,7 @@ impl State {
 
     pub fn place_tower_at(
         &mut self,
-        object: InventoryObject,
+        object: &InventoryObject,
         position: RectCoordinate,
     ) -> Result<&PositionedObject<RectCoordinate, InventoryObject>, u32> {
         if self.map.get_occupy(&position) != 0 {
@@ -143,7 +144,7 @@ impl State {
             self.id_allocator += 1;
             self.map.set_occupy(&position, 1);
             self.towers
-                .push(PositionedObject::new(object, position, self.id_allocator));
+                .push(PositionedObject::new(object.clone(), position, self.id_allocator));
             Ok(self.towers.get(self.towers.len() - 1).unwrap())
         }
     }
@@ -196,12 +197,18 @@ impl State {
     }
 }
 
-pub fn handle_place_tower(iid: &[u64; 4], pos: usize) -> Result<(), u32> {
+pub fn handle_place_tower(iid: &[u64; 4], pos: usize, feature: usize) -> Result<(), u32> {
     let global = unsafe { &mut crate::config::GLOBAL };
-    let inventory_obj = InventoryObject::get(iid);
-    let position = global.map.coordinate_of_tile_index(pos);
-    global.place_tower_at(inventory_obj.unwrap(), position)?;
-    Ok(())
+    let mut inventory_obj = InventoryObject::get(iid);
+    if let Some(inventory_obj) = inventory_obj.as_mut() {
+        let tower = inventory_obj.object.get_the_tower_mut();
+        tower.direction = CONFIG.standard_towers[feature as usize].direction.clone();
+        let position = global.map.coordinate_of_tile_index(pos);
+        global.place_tower_at(inventory_obj, position)?;
+        Ok(())
+    } else {
+        Err(ERROR_INVENTORY_NOT_FOUND)
+    }
 }
 
 pub fn handle_update_inventory(iid: &[u64; 4], feature: u64, pid: &[u64; 2]) {
@@ -404,14 +411,17 @@ impl State {
                     m.hp -= t.0.power;
                 }
                 if m.hp == 0 {
-                    insert_into_sorted(&mut termination_monster, t.4);
+                    //insert_into_sorted(&mut termination_monster, t.4);
                     self.towers[t.3].object.reward += m.kill; // kill reward
                     self.id_allocator += 1;
+                    m.hp = m.born;
+                    /* Disable drop feature
                     spawn.push(PositionedObject::new(
                         Object::Dropped(Dropped::new(10)),
                         self.monsters[t.4].position.clone(),
                         self.id_allocator,
                     ));
+                    */
                 }
                 events.push(Event::Attack(
                     t.1.repr(),
@@ -431,10 +441,12 @@ impl State {
             self.remove_monster(idx);
         }
 
+        /*
         termination_drop.reverse();
         for idx in termination_drop {
             self.remove_monster(idx);
         }
+        */
 
         for obj in spawn.into_iter() {
             self.spawn(obj);

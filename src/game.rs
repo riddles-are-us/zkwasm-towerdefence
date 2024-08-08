@@ -50,7 +50,7 @@ pub fn handle_command(commands: &[u64; 4], pkey: &[u64; 4]) -> Result<(), u32> {
             unsafe { require(player.owns(objindex)) };
             let pos = commands[2].to_le_bytes();
             let pos = u16::from_le_bytes(pos[0..2].try_into().unwrap());
-            state::handle_place_tower(&to_full_obj_id(objindex), pos as usize)?;
+            state::handle_place_tower(&to_full_obj_id(objindex), pos as usize, feature as usize)?;
             player.store();
             Ok(())
         },
@@ -140,6 +140,7 @@ pub struct Transaction {
 }
 
 pub const ERROR_POSITION_OCCUPIED:u32 = 1;
+pub const ERROR_INVENTORY_NOT_FOUND:u32 = 1;
 
 impl Transaction {
     pub fn decode(params: [u64; 4]) -> Self {

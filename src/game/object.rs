@@ -15,6 +15,7 @@ pub fn to_full_obj_id(id: u64) -> [u64; 4] {
 
 #[derive(Clone, Serialize)]
 pub struct Monster {
+    pub born: u64,
     pub hp: u64,
     pub hit: u64,
     pub kill: u64,
@@ -22,16 +23,17 @@ pub struct Monster {
 
 impl Monster {
     pub fn new(hp: u64, hit: u64, kill: u64) -> Self {
-        Monster { hp, hit, kill}
+        Monster {born: hp, hp, hit, kill}
     }
 }
 
 impl U64arraySerialize for Monster {
     fn to_u64_array(&self) -> Vec<u64> {
-        vec![self.hp, self.hit, self.kill]
+        vec![self.born, self.hp, self.hit, self.kill]
     }
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
         Monster {
+            born: *(data.next().unwrap()),
             hp: *(data.next().unwrap()),
             hit: *data.next().unwrap(),
             kill: *data.next().unwrap(),
@@ -48,7 +50,7 @@ pub struct Tower<Direction: Clone + Serialize> {
     pub count: u64,
     #[serde(skip_serializing)]
     pub owner: [u64; 2], // tail of the pubkey of the owner
-    direction: Direction,
+    pub direction: Direction,
 }
 
 impl Tower<RectDirection> {

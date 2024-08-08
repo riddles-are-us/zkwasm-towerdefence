@@ -13,12 +13,12 @@ use crate::tile::coordinate::RectDirection;
 use crate::tile::coordinate::Tile;
 use serde::Serialize;
 
-pub const SPWAN_INTERVAL:u64 = 3;
+pub const SPWAN_INTERVAL:u64 = 6;
 
 const MONSTER_LEVEL: [[u64; 3]; 3] = [
-    [30, 1, 2],
-    [30, 1, 10],
-    [30, 1, 50],
+    [30, 1, 6],
+    [150, 1, 12],
+    [750, 1, 56],
 ];
 
 const TOWER_LEVEL: [[u64; 3]; 3] = [
