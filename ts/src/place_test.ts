@@ -6,8 +6,8 @@ let player = new Player(account);
 async function main() {
   //sending_transaction([0n,0n,0n,0n], "1234");
   let map = await player.getMap();
-  let x = 2n;
-  let y = 2n;
+  let x = 12n;
+  let y = 6n;
   let pos = x + y * BigInt(map.width);
   let towerId = 10038n + pos;
   //let towerId = 10038n + y;

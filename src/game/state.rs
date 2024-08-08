@@ -26,6 +26,12 @@ use serde::Serialize;
 use std::usize;
 use zkwasm_rust_sdk::require;
 
+extern "C" {
+    pub fn wasm_trace_size() -> u64;
+}
+
+
+
 // The global state
 #[derive(Clone, Serialize)]
 pub struct State {
@@ -43,56 +49,43 @@ pub struct State {
 
 impl State {
     pub fn store(&self) {
+        unsafe {
+            let size = wasm_trace_size();
+            zkwasm_rust_sdk::dbg!("store start is {}\n", size);
+        }
+
+
         let kvpair = unsafe { &mut MERKLE_MAP };
-        let monsters_data = self
-            .monsters
-            .iter()
-            .map(|x| x.to_u64_array())
-            .flatten()
-            .collect::<Vec<u64>>();
-        let spawners_data = self
-            .spawners
-            .iter()
-            .map(|x| x.to_u64_array())
-            .flatten()
-            .collect::<Vec<u64>>();
-        let collectors_data = self
-            .collectors
-            .iter()
-            .map(|x| x.to_u64_array())
-            .flatten()
-            .collect::<Vec<u64>>();
-        let towers_data = self
-            .towers
-            .iter()
-            .map(|x| x.to_u64_array())
-            .flatten()
-            .collect::<Vec<u64>>();
-        let data = vec![
-            vec![
+        let mut data = Vec::with_capacity(4096);
+        data.append(&mut vec![
                 self.id_allocator,
                 self.counter,
                 self.monsters.len() as u64,
                 self.spawners.len() as u64,
                 self.collectors.len() as u64,
-                self.towers.len() as u64,
-            ],
-            monsters_data,
-            spawners_data,
-            collectors_data,
-            towers_data,
-        ]
-        .into_iter()
-        .flatten()
-        .collect::<Vec<_>>();
+                self.towers.len() as u64
+            ]);
+
+        self.monsters.iter().for_each(|x| x.to_u64_array(&mut data));
+        self.spawners.iter().for_each(|x| x.to_u64_array(&mut data));
+        self.collectors.iter().for_each(|x| x.to_u64_array(&mut data));
+        self.towers.iter().for_each(|x| x.to_u64_array(&mut data));
+
         //zkwasm_rust_sdk::dbg!("stored data: {:?}\n", data);
-        let splen = self.spawners.len();
+        //let splen = self.spawners.len();
         //zkwasm_rust_sdk::dbg!("spawners: {}\n", splen);
-        let mlen = self.monsters.len();
+        //let mlen = self.monsters.len();
         //zkwasm_rust_sdk::dbg!("monsters: {}\n", mlen);
         kvpair.set(&[0, 0, 0, 0], &data);
         let root = kvpair.merkle.root;
         //zkwasm_rust_sdk::dbg!("after store: {:?}\n", root);
+        //let root = kvpair.merkle.root;
+        unsafe {
+            let size = wasm_trace_size();
+            zkwasm_rust_sdk::dbg!("store start is {}\n", size);
+        }
+
+       //zkwasm_rust_sdk::dbg!("after store: {:?}\n", root);
     }
     pub fn fetch(&mut self) -> bool {
         let kvpair = unsafe { &mut MERKLE_MAP };

@@ -28,8 +28,8 @@ impl Monster {
 }
 
 impl U64arraySerialize for Monster {
-    fn to_u64_array(&self) -> Vec<u64> {
-        vec![self.born, self.hp, self.hit, self.kill]
+    fn to_u64_array(&self, data: &mut Vec<u64>) {
+        data.append(&mut vec![self.born, self.hp, self.hit, self.kill])
     }
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
         Monster {
@@ -125,8 +125,8 @@ impl Tower<RectDirection> {
 }
 
 impl U64arraySerialize for Tower<RectDirection> {
-    fn to_u64_array(&self) -> Vec<u64> {
-        vec![
+    fn to_u64_array(&self, data: &mut Vec<u64>) {
+        data.append(&mut vec![
             self.lvl,
             self.range,
             self.power,
@@ -134,7 +134,7 @@ impl U64arraySerialize for Tower<RectDirection> {
             self.owner[0],
             self.owner[1],
             self.direction.clone() as u64,
-        ]
+        ]);
     }
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
         let directions = RectCoordinate::directions();
@@ -162,8 +162,8 @@ impl Spawner {
 }
 
 impl U64arraySerialize for Spawner {
-    fn to_u64_array(&self) -> Vec<u64> {
-        vec![self.rate, self.count]
+    fn to_u64_array(&self, data: &mut Vec<u64>) {
+        data.append(&mut vec![self.rate, self.count]);
     }
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
         Self::new(*(data.next().unwrap()), *data.next().unwrap())
@@ -182,8 +182,8 @@ impl Collector {
 }
 
 impl U64arraySerialize for Collector {
-    fn to_u64_array(&self) -> Vec<u64> {
-        vec![self.buf]
+    fn to_u64_array(&self, data: &mut Vec<u64>) {
+        data.push(self.buf);
     }
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
         Self::new(*(data.next().unwrap()))
@@ -202,8 +202,8 @@ impl Dropped {
 }
 
 impl U64arraySerialize for Dropped {
-    fn to_u64_array(&self) -> Vec<u64> {
-        vec![self.delta]
+    fn to_u64_array(&self, data: &mut Vec<u64>) {
+        data.push(self.delta);
     }
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
         Self::new(*(data.next().unwrap()))
@@ -220,16 +220,29 @@ pub enum Object<Direction: Clone + Serialize> {
 }
 
 impl U64arraySerialize for Object<RectDirection> {
-    fn to_u64_array(&self) -> Vec<u64> {
-        let (mut data, t) = match self {
-            Object::Monster(o) => (o.to_u64_array(), 0),
-            Object::Tower(o) => (o.to_u64_array(), 1),
-            Object::Spawner(o) => (o.to_u64_array(), 2),
-            Object::Dropped(o) => (o.to_u64_array(), 3),
-            Object::Collector(o) => (o.to_u64_array(), 4),
+    fn to_u64_array(&self, data: &mut Vec<u64>) {
+        match self {
+            Object::Monster(o) => {
+                data.push(0);
+                o.to_u64_array(data);
+            },
+            Object::Tower(o) => {
+                data.push(1);
+                o.to_u64_array(data);
+            },
+            Object::Spawner(o) => {
+                data.push(2);
+                o.to_u64_array(data);
+            }
+            Object::Dropped(o) => {
+                data.push(3);
+                o.to_u64_array(data);
+            },
+            Object::Collector(o) => {
+                data.push(4);
+                o.to_u64_array(data);
+            }
         };
-        data.insert(0, t);
-        data
     }
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
         let t: u64 = *(data.next().unwrap());
@@ -290,11 +303,10 @@ impl InventoryObject {
 }
 
 impl U64arraySerialize for InventoryObject {
-    fn to_u64_array(&self) -> Vec<u64> {
-        let mut data = self.object.to_u64_array();
+    fn to_u64_array(&self, data: &mut Vec<u64>) {
+        self.object.to_u64_array(data);
         data.push(self.reward);
         data.push(self.object_id[0]);
-        data
     }
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
         let object = Object::from_u64_array(data);
@@ -329,8 +341,8 @@ impl InventoryObject {
     }
     pub fn store(&self) {
         let oid = self.object_id;
-        zkwasm_rust_sdk::dbg!("store object {:?}\n", oid);
-        let mut data = self.object.to_u64_array();
+        let mut data = Vec::with_capacity(1024);
+        self.object.to_u64_array(&mut data);
         data.push(self.reward);
         let kvpair = unsafe { &mut MERKLE_MAP };
         kvpair.set(&self.object_id, data.as_slice());

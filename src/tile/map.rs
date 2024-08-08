@@ -35,11 +35,11 @@ fn u64_to_cor<C: Coordinate>(u: u64) -> C {
 
 
 impl<C: Coordinate, O: Clone + U64arraySerialize> U64arraySerialize for PositionedObject<C, O> {
-    fn to_u64_array(&self) -> Vec<u64> {
+    fn to_u64_array(&self, data: &mut Vec<u64>) {
         let index = cor_to_u64(&self.position);
-        let mut data = vec![self.id, index];
-        data.append(&mut self.object.to_u64_array());
-        data
+        data.push(self.id);
+        data.push(index);
+        self.object.to_u64_array(data);
     }
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
         let id = *(data.next().unwrap());

@@ -15,8 +15,8 @@ interface MapSize {
   height: number,
 }
 
-const rpc = new ZKWasmAppRpc("http://localhost:3000");
-//const rpc = new ZKWasmAppRpc("http://114.119.187.224:8085");
+//const rpc = new ZKWasmAppRpc("http://localhost:3000");
+const rpc = new ZKWasmAppRpc("http://114.119.187.224:8085");
 
 export class Player {
   processingKey: string;
