@@ -389,12 +389,41 @@ impl State {
             }
         }
 
-        for (index, obj) in self.monsters.iter_mut().enumerate() {
-            for t in tower_range.iter_mut() {
-                let range = t.0.range(&t.1, &obj.position);
-                if range < t.2 {
-                    t.2 = range;
-                    t.4 = index;
+        let (max_monster_x, max_monster_y) = self.monsters.iter().fold((0, 0), |acc, m| {
+            let (mx, my) = m.position.repr();
+            (acc.0.max(mx as usize), acc.1.max(my as usize))
+        });
+
+        let mut x_position_mark = vec![vec![]; max_monster_x];
+        let mut y_position_mark = vec![vec![]; max_monster_y];
+        for (i, m) in self.monsters.iter().enumerate() {
+            let (mx, my) = m.position.repr();
+            x_position_mark[mx as usize].push((m, i));
+            y_position_mark[my as usize].push((m, i));
+        }
+
+        for t in tower_range.iter_mut() {
+            let (tx, ty) = t.1.repr();
+            match t.0.direction {
+                RectDirection::Top | RectDirection::Bottom => {
+                    for (m, index) in x_position_mark[tx as usize].iter() {
+                        let range = t.0.range(&t.1, &m.position);
+                        if range < t.2 {
+                            t.2 = range;
+                            t.4 = *index;
+                            break;
+                        }
+                    }
+                }
+                RectDirection::Right | RectDirection::Left => {
+                    for (m, index) in y_position_mark[ty as usize].iter() {
+                        let range = t.0.range(&t.1, &m.position);
+                        if range < t.2 {
+                            t.2 = range;
+                            t.4 = *index;
+                            break;
+                        }
+                    }
                 }
             }
         }
