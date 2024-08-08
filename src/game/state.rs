@@ -7,23 +7,24 @@ use super::object::Spawner;
 use super::object::Tower;
 use super::ERROR_INVENTORY_NOT_FOUND;
 use super::ERROR_POSITION_OCCUPIED;
-use crate::player::TDPlayer;
-use crate::player::Owner;
 use crate::config::spawn_monster;
 use crate::config::CONFIG;
 use crate::config::SPWAN_INTERVAL;
 use crate::config::UPGRADE_COST;
 use crate::game::object::InventoryObject;
+use crate::game::serialize::U64arraySerialize;
+use crate::player::Owner;
+use crate::player::TDPlayer;
 use crate::tile::coordinate::Coordinate;
 use crate::tile::coordinate::RectCoordinate;
 use crate::tile::coordinate::RectDirection;
 use crate::tile::map::Map;
 use crate::tile::map::PositionedObject;
-use serde::Serialize;
-use zkwasm_rust_sdk::require;
 use crate::MERKLE_MAP;
-use crate::game::serialize::U64arraySerialize;
 use core::slice::IterMut;
+use serde::Serialize;
+use std::usize;
+use zkwasm_rust_sdk::require;
 
 // The global state
 #[derive(Clone, Serialize)]
@@ -43,10 +44,30 @@ pub struct State {
 impl State {
     pub fn store(&self) {
         let kvpair = unsafe { &mut MERKLE_MAP };
-        let monsters_data = self.monsters.iter().map(|x| x.to_u64_array()).flatten().collect::<Vec<u64>>();
-        let spawners_data = self.spawners.iter().map(|x| x.to_u64_array()).flatten().collect::<Vec<u64>>();
-        let collectors_data = self.collectors.iter().map(|x| x.to_u64_array()).flatten().collect::<Vec<u64>>();
-        let towers_data = self.towers.iter().map(|x| x.to_u64_array()).flatten().collect::<Vec<u64>>();
+        let monsters_data = self
+            .monsters
+            .iter()
+            .map(|x| x.to_u64_array())
+            .flatten()
+            .collect::<Vec<u64>>();
+        let spawners_data = self
+            .spawners
+            .iter()
+            .map(|x| x.to_u64_array())
+            .flatten()
+            .collect::<Vec<u64>>();
+        let collectors_data = self
+            .collectors
+            .iter()
+            .map(|x| x.to_u64_array())
+            .flatten()
+            .collect::<Vec<u64>>();
+        let towers_data = self
+            .towers
+            .iter()
+            .map(|x| x.to_u64_array())
+            .flatten()
+            .collect::<Vec<u64>>();
         let data = vec![
             vec![
                 self.id_allocator,
@@ -54,23 +75,28 @@ impl State {
                 self.monsters.len() as u64,
                 self.spawners.len() as u64,
                 self.collectors.len() as u64,
-                self.towers.len() as u64
-            ], monsters_data, spawners_data, collectors_data, towers_data]
-            .into_iter()
-            .flatten()
-            .collect::<Vec<_>>();
+                self.towers.len() as u64,
+            ],
+            monsters_data,
+            spawners_data,
+            collectors_data,
+            towers_data,
+        ]
+        .into_iter()
+        .flatten()
+        .collect::<Vec<_>>();
         //zkwasm_rust_sdk::dbg!("stored data: {:?}\n", data);
         let splen = self.spawners.len();
         //zkwasm_rust_sdk::dbg!("spawners: {}\n", splen);
         let mlen = self.monsters.len();
         //zkwasm_rust_sdk::dbg!("monsters: {}\n", mlen);
-        kvpair.set(&[0,0,0,0], &data);
+        kvpair.set(&[0, 0, 0, 0], &data);
         let root = kvpair.merkle.root;
         //zkwasm_rust_sdk::dbg!("after store: {:?}\n", root);
     }
     pub fn fetch(&mut self) -> bool {
         let kvpair = unsafe { &mut MERKLE_MAP };
-        let mut data = kvpair.get(&[0,0,0,0]);
+        let mut data = kvpair.get(&[0, 0, 0, 0]);
         if data.is_empty() {
             false
         } else {
@@ -102,7 +128,8 @@ impl State {
                 self.collectors.push(obj);
             }
             for _ in 0..towers_len {
-                let obj = PositionedObject::<RectCoordinate, InventoryObject>::from_u64_array(&mut data);
+                let obj =
+                    PositionedObject::<RectCoordinate, InventoryObject>::from_u64_array(&mut data);
                 self.map.set_occupy(&obj.position, 1);
                 self.towers.push(obj);
             }
@@ -143,8 +170,11 @@ impl State {
         } else {
             self.id_allocator += 1;
             self.map.set_occupy(&position, 1);
-            self.towers
-                .push(PositionedObject::new(object.clone(), position, self.id_allocator));
+            self.towers.push(PositionedObject::new(
+                object.clone(),
+                position,
+                self.id_allocator,
+            ));
             Ok(self.towers.get(self.towers.len() - 1).unwrap())
         }
     }
@@ -263,7 +293,6 @@ pub fn handle_withdraw_tower(nonce: u64, iid: &[u64; 4], pkey: &[u64; 4]) {
     }
 }
 
-
 pub fn handle_drop_tower(iid: &[u64; 4]) {
     let global = unsafe { &mut crate::config::GLOBAL };
     //let inventory_obj = InventoryObject::get(iid);
@@ -284,15 +313,13 @@ pub fn handle_collect_rewards(player: &mut TDPlayer, iid: &[u64; 4]) {
     inventory_obj.store();
 }
 
-
-
 pub fn handle_upgrade_inventory(iid: &[u64; 4]) {
     //let global = unsafe { &mut crate::config::GLOBAL };
     let mut inventory_obj = InventoryObject::get(iid).unwrap();
     let tower = inventory_obj.object.get_the_tower_mut();
-    unsafe {require(tower.lvl < 3)};
+    unsafe { require(tower.lvl < 3) };
     let cost = UPGRADE_COST[tower.lvl as usize];
-    unsafe {require(inventory_obj.reward >= cost)};
+    unsafe { require(inventory_obj.reward >= cost) };
     inventory_obj.reward -= cost;
     inventory_obj.object.upgrade();
     inventory_obj.store();
@@ -322,8 +349,6 @@ impl State {
         let mut termination_monster = vec![];
         let mut termination_drop = vec![];
         let mut spawn = vec![];
-        let mut tower_range: Vec<(Tower<RectDirection>, RectCoordinate, usize, usize, usize)> =
-            vec![];
 
         for (index, obj) in self.monsters.iter_mut().enumerate() {
             //let m = &obj.object;
@@ -373,100 +398,120 @@ impl State {
             // TODO fill object spawner
         }
 
-        for (index, obj) in self.towers.iter_mut().enumerate() {
-            if let Object::Tower(tower) = &mut obj.object.object {
-                if tower.count == 0 {
-                    tower_range.push((
-                        tower.clone(),
-                        obj.position.clone(),
-                        usize::max_value(),
-                        index,
-                        usize::max_value(),
-                    ));
-                } else {
-                    tower.count -= 1;
-                }
-            }
-        }
-
         let (max_monster_x, max_monster_y) = self.monsters.iter().fold((0, 0), |acc, m| {
             let (mx, my) = m.position.repr();
             (acc.0.max(mx as usize), acc.1.max(my as usize))
         });
 
-        let mut x_position_mark = vec![vec![]; max_monster_x];
-        let mut y_position_mark = vec![vec![]; max_monster_y];
+        let mut x_position_mark = vec![vec![]; max_monster_x + 1];
+        let mut y_position_mark = vec![vec![]; max_monster_y + 1];
         for (i, m) in self.monsters.iter().enumerate() {
             let (mx, my) = m.position.repr();
-            x_position_mark[mx as usize].push((m, i));
-            y_position_mark[my as usize].push((m, i));
-        }
-
-        for t in tower_range.iter_mut() {
-            let (tx, ty) = t.1.repr();
-            match t.0.direction {
-                RectDirection::Top | RectDirection::Bottom => {
-                    for (m, index) in x_position_mark[tx as usize].iter() {
-                        let range = t.0.range(&t.1, &m.position);
-                        if range < t.2 {
-                            t.2 = range;
-                            t.4 = *index;
-                            break;
-                        }
-                    }
-                }
-                RectDirection::Right | RectDirection::Left => {
-                    for (m, index) in y_position_mark[ty as usize].iter() {
-                        let range = t.0.range(&t.1, &m.position);
-                        if range < t.2 {
-                            t.2 = range;
-                            t.4 = *index;
-                            break;
-                        }
-                    }
-                }
-            }
+            x_position_mark[mx as usize].push(i);
+            y_position_mark[my as usize].push(i);
         }
 
         let mut events = vec![];
 
-        for t in tower_range.iter_mut() {
-            if t.4 != usize::max_value() {
-                let m = &mut self.monsters[t.4].object;
-                let hit_reward = m.hit;
-                if m.hp < t.0.power {
-                    m.hp = 0;
+        for obj in self.towers.iter_mut() {
+            if let Object::Tower(tower) = &mut obj.object.object {
+                if tower.count == 0 {
+                    let pos = &obj.position;
+                    let (tx, ty) = pos.repr();
+
+                    // Find the first monster according to the direction.
+                    let mut monster_index = self.monsters.len();
+                    let mut monster_dist = usize::MAX;
+                    match tower.direction {
+                        RectDirection::Top => {
+                            for m_index in x_position_mark[tx as usize].iter() {
+                                let (_, my) = self.monsters[*m_index].position.repr();
+                                if my < ty {
+                                    let dist = (ty - my) as usize;
+                                    if dist < monster_dist {
+                                        monster_dist = dist;
+                                        monster_index = *m_index;
+                                    }
+                                }
+                            }
+                        }
+                        RectDirection::Bottom => {
+                            for m_index in x_position_mark[tx as usize].iter() {
+                                let (_, my) = self.monsters[*m_index].position.repr();
+                                if my > ty {
+                                    let dist = (my - ty) as usize;
+                                    if dist < monster_dist {
+                                        monster_dist = dist;
+                                        monster_index = *m_index;
+                                    }
+                                }
+                            }
+                        }
+                        RectDirection::Right => {
+                            for m_index in y_position_mark[ty as usize].iter() {
+                                let (mx, _) = self.monsters[*m_index].position.repr();
+                                if mx > tx {
+                                    let dist = (mx - tx) as usize;
+                                    if dist < monster_dist {
+                                        monster_dist = dist;
+                                        monster_index = *m_index;
+                                    }
+                                }
+                            }
+                        }
+                        RectDirection::Left => {
+                            for m_index in y_position_mark[ty as usize].iter() {
+                                let (mx, _) = self.monsters[*m_index].position.repr();
+                                if mx < tx {
+                                    let dist = (tx - mx) as usize;
+                                    if dist < monster_dist {
+                                        monster_dist = dist;
+                                        monster_index = *m_index;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Calculate damage and reward
+                    if monster_index < self.monsters.len() {
+                        let m_obj = &mut self.monsters[monster_index];
+                        let m = &mut m_obj.object;
+                        let hit_reward = m.hit;
+                        if m.hp < tower.power {
+                            m.hp = 0;
+                        } else {
+                            m.hp -= tower.power;
+                        }
+
+                        // Get reward
+                        if m.hp == 0 {
+                            //insert_into_sorted(&mut termination_monster, t.4);
+                            obj.object.reward += m.kill; // kill reward
+                            self.id_allocator += 1;
+                            m.hp = m.born;
+                            /* Disable drop feature
+                            spawn.push(PositionedObject::new(
+                                Object::Dropped(Dropped::new(10)),
+                                self.monsters[t.4].position.clone(),
+                                self.id_allocator,
+                            ));
+                            */
+                        }
+                        events.push(Event::Attack((tx, ty), m_obj.position.repr(), tower.power));
+                        // Reset tower cooldown
+                        tower.count = tower.cooldown;
+                        obj.object.reward += hit_reward;
+                        obj.object.store();
+                    }
                 } else {
-                    m.hp -= t.0.power;
+                    tower.count -= 1;
+                    //TODO: do we need to store tower obj here?
                 }
-                if m.hp == 0 {
-                    //insert_into_sorted(&mut termination_monster, t.4);
-                    self.towers[t.3].object.reward += m.kill; // kill reward
-                    self.id_allocator += 1;
-                    m.hp = m.born;
-                    /* Disable drop feature
-                    spawn.push(PositionedObject::new(
-                        Object::Dropped(Dropped::new(10)),
-                        self.monsters[t.4].position.clone(),
-                        self.id_allocator,
-                    ));
-                    */
-                }
-                events.push(Event::Attack(
-                    t.1.repr(),
-                    self.monsters[t.4].position.repr(),
-                    t.0.power,
-                ));
-                if let Object::Tower(tower) = &mut self.towers[t.3].object.object {
-                    tower.count = tower.cooldown;
-                }
-                self.towers[t.3].object.reward += hit_reward; // hit reward
-                self.towers[t.3].object.store();
             }
         }
 
-        termination_monster.reverse();
-        for idx in termination_monster {
+        for idx in termination_monster.into_iter().rev() {
             self.remove_monster(idx);
         }
 
