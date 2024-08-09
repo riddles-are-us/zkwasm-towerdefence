@@ -40,14 +40,17 @@ pub fn spawn_monster(count: u64) -> Monster {
 }
 
 pub fn build_tower(lvl: u64, dir: RectDirection) -> Tower<RectDirection> {
-    let l = TOWER_LEVEL[lvl as usize];
+    unsafe { require(lvl <= TOWER_LEVEL.len() as u64) };
+    unsafe { require(lvl >= 1) }; // tower lvl start from 1
+    let l = TOWER_LEVEL[(lvl - 1) as usize];
     Tower::new(lvl, l[0], l[1], l[2], [0, 0], dir)
 }
 
 pub fn upgrade_tower(t: &mut Tower<RectDirection>) {
     unsafe { require(t.lvl < TOWER_LEVEL.len() as u64) };
-    t.lvl = t.lvl + 1;
+    unsafe { require(t.lvl >= 1) }; // tower lvl start from 1
     let l = TOWER_LEVEL[t.lvl as usize];
+    t.lvl = t.lvl + 1;
     t.range = l[0];
     t.power = l[1];
     t.cooldown = l[2];

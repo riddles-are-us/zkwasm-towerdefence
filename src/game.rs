@@ -59,7 +59,7 @@ pub fn handle_command(commands: &[u64; 4], pkey: &[u64; 4]) -> Result<(), u32> {
             player.check_and_inc_nonce(nonce);
             let objindex = commands[1];
             unsafe { require(player.owns(objindex)) };
-            state::handle_upgrade_inventory(&to_full_obj_id(objindex));
+            state::handle_upgrade_inventory(&mut player, &to_full_obj_id(objindex));
             player.store();
             Ok(())
         },

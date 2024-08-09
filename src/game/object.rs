@@ -39,6 +39,13 @@ impl U64arraySerialize for Monster {
             kill: *data.next().unwrap(),
         }
     }
+    fn modify_from_u64_array(&mut self, data: &mut IterMut<u64>) {
+        self.born = *(data.next().unwrap());
+        self.hp = *(data.next().unwrap());
+        self.hit = *data.next().unwrap();
+        self.kill = *data.next().unwrap();
+    }
+
 }
 
 #[derive(Clone, Serialize)]
@@ -147,6 +154,16 @@ impl U64arraySerialize for Tower<RectDirection> {
             directions[*data.next().unwrap() as usize].clone(),
         )
     }
+    fn modify_from_u64_array(&mut self, data: &mut IterMut<u64>) {
+        let directions = RectCoordinate::directions();
+        self.lvl = *(data.next().unwrap());
+        self.range = *data.next().unwrap();
+        self.power = *data.next().unwrap();
+        self.cooldown = *data.next().unwrap();
+        self.owner[0] = *data.next().unwrap();
+        self.owner[1] = *data.next().unwrap();
+        self.direction = directions[*data.next().unwrap() as usize].clone();
+    }
 }
 
 #[derive(Clone, Serialize)]
@@ -168,6 +185,11 @@ impl U64arraySerialize for Spawner {
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
         Self::new(*(data.next().unwrap()), *data.next().unwrap())
     }
+    fn modify_from_u64_array(&mut self, data: &mut IterMut<u64>) {
+        self.rate = *data.next().unwrap();
+        self.count = *data.next().unwrap();
+    }
+
 }
 
 #[derive(Clone, Serialize)]
@@ -188,6 +210,10 @@ impl U64arraySerialize for Collector {
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
         Self::new(*(data.next().unwrap()))
     }
+    fn modify_from_u64_array(&mut self, data: &mut IterMut<u64>)  {
+        self.buf = *(data.next().unwrap());
+    }
+
 }
 
 #[derive(Clone, Serialize)]
@@ -207,6 +233,9 @@ impl U64arraySerialize for Dropped {
     }
     fn from_u64_array(data: &mut IterMut<u64>) -> Self {
         Self::new(*(data.next().unwrap()))
+    }
+    fn modify_from_u64_array(&mut self, data: &mut IterMut<u64>) {
+        self.delta = *(data.next().unwrap());
     }
 }
 
@@ -255,6 +284,18 @@ impl U64arraySerialize for Object<RectDirection> {
             _ => unreachable!(),
         }
     }
+    fn modify_from_u64_array(&mut self, data: &mut IterMut<u64>) {
+        let t: u64 = *(data.next().unwrap());
+        *self = match t {
+            0 => Object::Monster(Monster::from_u64_array(data)),
+            1 => Object::Tower(Tower::from_u64_array(data)),
+            2 => Object::Spawner(Spawner::from_u64_array(data)),
+            3 => Object::Dropped(Dropped::from_u64_array(data)),
+            4 => Object::Collector(Collector::from_u64_array(data)),
+            _ => unreachable!(),
+        }
+    }
+
 }
 
 impl Object<RectDirection> {
@@ -317,6 +358,12 @@ impl U64arraySerialize for InventoryObject {
            reward,
            object,
         }
+    }
+    fn modify_from_u64_array(&mut self, data: &mut IterMut<u64>) {
+        self.object.modify_from_u64_array(data);
+        self.reward = *(data.next().unwrap());
+        let oid = *(data.next().unwrap());
+        self.object_id = to_full_obj_id(oid);
     }
 }
 

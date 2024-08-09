@@ -9,6 +9,7 @@ use super::ERROR_INVENTORY_NOT_FOUND;
 use super::ERROR_POSITION_OCCUPIED;
 use crate::config::spawn_monster;
 use crate::config::CONFIG;
+use crate::config::GLOBAL;
 use crate::config::SPWAN_INTERVAL;
 use crate::config::UPGRADE_COST;
 use crate::game::object::InventoryObject;
@@ -30,13 +31,6 @@ use zkwasm_rust_sdk::require;
 extern "C" {
     pub fn wasm_trace_size() -> u64;
 }
-
-/*
-fn wasm_trace_size() -> u64 {
-    0
-}
-*/
-
 
 // The global state
 #[derive(Clone, Serialize)]
@@ -97,25 +91,29 @@ impl State {
     }
     pub fn fetch(&mut self) -> bool {
         let kvpair = unsafe { &mut MERKLE_MAP };
-        unsafe {
+
+        /*unsafe {
             let size = wasm_trace_size();
             zkwasm_rust_sdk::dbg!("kvpair start is {}\n", size);
-        }
+        }*/
 
         let mut data = kvpair.get(&[0, 0, 0, 0]);
-
-        unsafe {
+        /*unsafe {
+            let datalen = data.len();
             let size = wasm_trace_size();
             zkwasm_rust_sdk::dbg!("kvpair end is {}\n", size);
-        }
+            zkwasm_rust_sdk::dbg!("data len is {}\n", datalen);
+        }*/
 
         if data.is_empty() {
             false
         } else {
-        unsafe {
-            let size = wasm_trace_size();
-            zkwasm_rust_sdk::dbg!("fetch start is {}\n", size);
-        }
+
+            unsafe {
+                let size = wasm_trace_size();
+                zkwasm_rust_sdk::dbg!("fetch start is {}\n", size);
+            }
+
             let mut data = data.iter_mut();
             //zkwasm_rust_sdk::dbg!("stored data: {:?}\n", data);
             self.id_allocator = *data.next().unwrap();
@@ -129,54 +127,34 @@ impl State {
             self.spawners = Vec::with_capacity(spawners_len);
             self.collectors = Vec::with_capacity(collectors_len);
             self.towers = Vec::with_capacity(towers_len);
-        unsafe {
-            let size = wasm_trace_size();
-            zkwasm_rust_sdk::dbg!("fetch mid is {}\n", size);
-        }
-            for _ in 0..monsters_len {
-                let obj = PositionedObject::<RectCoordinate, Monster>::from_u64_array(&mut data);
-                self.monsters.push(obj);
+
+            unsafe { self.monsters.set_len(monsters_len) };
+            for i in 0..monsters_len {
+                PositionedObject::<RectCoordinate, Monster>::modify_from_u64_array(&mut self.monsters[i], &mut data);
             }
-        unsafe {
-            let size = wasm_trace_size();
-            zkwasm_rust_sdk::dbg!("fetch monster is {}\n", size);
-        }
 
             for _ in 0..spawners_len {
                 let obj = PositionedObject::<RectCoordinate, Spawner>::from_u64_array(&mut data);
                 self.map.set_occupy(&obj.position, 1);
                 self.spawners.push(obj);
             }
-        unsafe {
-            let size = wasm_trace_size();
-            zkwasm_rust_sdk::dbg!("fetch sp is {}\n", size);
-        }
-
 
             for _ in 0..collectors_len {
                 let obj = PositionedObject::<RectCoordinate, Collector>::from_u64_array(&mut data);
                 self.map.set_occupy(&obj.position, 1);
                 self.collectors.push(obj);
             }
-        unsafe {
-            let size = wasm_trace_size();
-            zkwasm_rust_sdk::dbg!("fetch col is {}\n", size);
-        }
 
-
-            for _ in 0..towers_len {
-                let obj =
-                    PositionedObject::<RectCoordinate, InventoryObject>::from_u64_array(&mut data);
-                self.map.set_occupy(&obj.position, 1);
-                self.towers.push(obj);
+            unsafe { self.towers.set_len(towers_len) };
+            for i in 0..towers_len {
+                PositionedObject::<RectCoordinate, InventoryObject>::modify_from_u64_array(&mut self.towers[i], &mut data);
+                self.map.set_occupy(&self.towers[i].position, 1);
             }
 
-        unsafe {
-            let size = wasm_trace_size();
-            zkwasm_rust_sdk::dbg!("fetch end is {}\n", size);
-        }
-
-
+            unsafe {
+                let size = wasm_trace_size();
+                zkwasm_rust_sdk::dbg!("fetch end is {}\n", size);
+            }
             true
         }
     }
@@ -269,6 +247,15 @@ impl State {
             _ => unreachable!(),
         };
     }
+
+    pub fn get_placed_inventory(&mut self, id: u64) -> Option<&mut InventoryObject> {
+        for t in self.towers.iter_mut() {
+            if t.object.object_id[0] == id {
+                return Some(&mut t.object)
+            }
+        }
+        None
+    }
 }
 
 pub fn handle_place_tower(iid: &[u64; 4], pos: usize, feature: usize) -> Result<(), u32> {
@@ -352,19 +339,29 @@ pub fn handle_drop_tower(iid: &[u64; 4]) {
 pub fn handle_collect_rewards(player: &mut TDPlayer, iid: &[u64; 4]) {
     //let inventory_obj = InventoryObject::get(iid);
     let mut inventory_obj = InventoryObject::get(iid).unwrap();
-    player.data.reward += inventory_obj.reward;
+    let cached_obj = unsafe {GLOBAL.get_placed_inventory(iid[0])};
+    match cached_obj {
+        Some(a) => {
+            player.data.reward += a.reward;
+            a.reward = 0u64;
+        },
+        None => {
+        }
+    }
+    /*
     inventory_obj.reward = 0;
     inventory_obj.store();
+    */
 }
 
-pub fn handle_upgrade_inventory(iid: &[u64; 4]) {
+pub fn handle_upgrade_inventory(player: &mut TDPlayer, iid: &[u64; 4]) {
     //let global = unsafe { &mut crate::config::GLOBAL };
     let mut inventory_obj = InventoryObject::get(iid).unwrap();
     let tower = inventory_obj.object.get_the_tower_mut();
-    unsafe { require(tower.lvl < 3) };
-    let cost = UPGRADE_COST[tower.lvl as usize];
-    unsafe { require(inventory_obj.reward >= cost) };
-    inventory_obj.reward -= cost;
+    unsafe { require(tower.lvl >= 1 && tower.lvl < 3) };
+    let cost = UPGRADE_COST[(tower.lvl-1) as usize];
+    unsafe { require(player.data.reward >= cost) };
+    player.data.reward -= cost;
     inventory_obj.object.upgrade();
     inventory_obj.store();
 }
@@ -378,18 +375,9 @@ fn insert_into_sorted<T: Ord>(vec: &mut Vec<T>, element: T) {
 
 impl State {
     pub fn run(&mut self) {
-        unsafe {
-            let size = wasm_trace_size();
-            zkwasm_rust_sdk::dbg!("start is {}\n", size);
-        }
         self.counter += 1;
 
-        let splen = self.spawners.len();
-        let mlen = self.monsters.len();
-        zkwasm_rust_sdk::dbg!("run monsters: {}\n", mlen);
-
         let mut collector = vec![];
-
         // figureout all the collectors in the state
         for obj in self.collectors.iter() {
             collector.push(obj.position.clone())
@@ -397,11 +385,6 @@ impl State {
         let mut termination_monster = vec![];
         let mut termination_drop = vec![];
         let mut spawn = vec![];
-
-        unsafe {
-            let size = wasm_trace_size();
-            zkwasm_rust_sdk::dbg!("start loops {}\n", size);
-        }
 
         for (index, obj) in self.monsters.iter_mut().enumerate() {
             //let m = &obj.object;
@@ -452,106 +435,89 @@ impl State {
         }
 
 
-        let size = unsafe { wasm_trace_size() };
+        const MAX_MAP_LEN: usize = 32;
 
-        let (max_monster_x, max_monster_y) = self.monsters.iter().fold((0, 0), |acc, m| {
-            let (mx, my) = m.position.repr();
-            (acc.0.max(mx as usize), acc.1.max(my as usize))
-        });
-
-        let size = unsafe {
-            let size_end = wasm_trace_size();
-            let delta = size_end - size;
-            zkwasm_rust_sdk::dbg!("delta0 {}\n", delta);
-            size_end
-        };
-
-
-        let mut x_position_mark:Vec<LinkedList<usize>> = vec![LinkedList::new(); max_monster_x + 1];
-        let mut y_position_mark:Vec<LinkedList<usize>> = vec![LinkedList::new(); max_monster_y + 1];
-
-        let size = unsafe {
-            let size_end = wasm_trace_size();
-            let delta = size_end - size;
-            zkwasm_rust_sdk::dbg!("delta1 {}\n", delta);
-            size_end
-        };
+        let mut x_position_mark: [([std::mem::MaybeUninit<usize>; MAX_MAP_LEN], usize); MAX_MAP_LEN] = [([std::mem::MaybeUninit::uninit(); MAX_MAP_LEN], 0); MAX_MAP_LEN];
+        let mut y_position_mark: [([std::mem::MaybeUninit<usize>; MAX_MAP_LEN], usize); MAX_MAP_LEN] = [([std::mem::MaybeUninit::uninit(); MAX_MAP_LEN], 0); MAX_MAP_LEN];
 
         for (i, m) in self.monsters.iter().enumerate() {
             let (mx, my) = m.position.repr();
-            x_position_mark[mx as usize].push_back(i);
-            y_position_mark[my as usize].push_back(i);
+            let (arr, len) = &mut x_position_mark[mx as usize];
+            arr[*len] = std::mem::MaybeUninit::new(i);
+            *len += 1;
+            let (arr, len) = &mut y_position_mark[my as usize];
+            arr[*len] = std::mem::MaybeUninit::new(i);
+            *len += 1;
         }
 
-        let size = unsafe {
-            let size_end = wasm_trace_size();
-            let delta = size_end - size;
-            zkwasm_rust_sdk::dbg!("delta2 {}\n", delta);
-            size_end
-        };
+        let x_position_mark: &[([usize; MAX_MAP_LEN], usize); MAX_MAP_LEN] =
+            unsafe { std::mem::transmute(&x_position_mark) };
+        let y_position_mark: &[([usize; MAX_MAP_LEN], usize); MAX_MAP_LEN] =
+            unsafe { std::mem::transmute(&y_position_mark) };
 
         let mut events = Vec::with_capacity(1024);
-
         for obj in self.towers.iter_mut() {
-            if let Object::Tower(tower) = &mut obj.object.object {
+            let tower = obj.object.object.get_the_tower_mut();
                 if tower.count == 0 {
                     let pos = &obj.position;
                     let (tx, ty) = pos.repr();
-
                     // Find the first monster according to the direction.
                     let mut monster_index = self.monsters.len();
                     let mut monster_dist = usize::MAX;
                     match tower.direction {
                         RectDirection::Top => {
-                            for m_index in x_position_mark[tx as usize].iter() {
-                                let (_, my) = self.monsters[*m_index].position.repr();
+                            for i in 0..x_position_mark[tx as usize].1 {
+                                let m_index = x_position_mark[tx as usize].0[i];
+                                let (_, my) = self.monsters[m_index as usize].position.repr();
                                 if my < ty {
                                     let dist = (ty - my) as usize;
                                     if dist < monster_dist {
                                         monster_dist = dist;
-                                        monster_index = *m_index;
+                                        monster_index = m_index as usize;
                                     }
                                 }
                             }
                         }
                         RectDirection::Bottom => {
-                            for m_index in x_position_mark[tx as usize].iter() {
-                                let (_, my) = self.monsters[*m_index].position.repr();
-                                if my > ty {
+                            for i in 0..x_position_mark[tx as usize].1 {
+                                let m_index = x_position_mark[tx as usize].0[i];
+                                let (_, my) = self.monsters[m_index as usize].position.repr();
+                                if my < ty {
                                     let dist = (my - ty) as usize;
                                     if dist < monster_dist {
                                         monster_dist = dist;
-                                        monster_index = *m_index;
+                                        monster_index = m_index as usize;
                                     }
                                 }
                             }
                         }
                         RectDirection::Right => {
-                            for m_index in y_position_mark[ty as usize].iter() {
-                                let (mx, _) = self.monsters[*m_index].position.repr();
-                                if mx > tx {
-                                    let dist = (mx - tx) as usize;
+                            for i in 0..y_position_mark[ty as usize].1 {
+                                let m_index = y_position_mark[ty as usize].0[i];
+                                let (_, my) = self.monsters[m_index as usize].position.repr();
+                                if my < ty {
+                                    let dist = (ty - my) as usize;
                                     if dist < monster_dist {
                                         monster_dist = dist;
-                                        monster_index = *m_index;
+                                        monster_index = m_index as usize;
                                     }
                                 }
                             }
                         }
                         RectDirection::Left => {
-                            for m_index in y_position_mark[ty as usize].iter() {
-                                let (mx, _) = self.monsters[*m_index].position.repr();
+                            for i in 0..y_position_mark[ty as usize].1 {
+                                let m_index = y_position_mark[ty as usize].0[i];
+                                let (mx, _) = self.monsters[m_index as usize].position.repr();
                                 if mx < tx {
                                     let dist = (tx - mx) as usize;
                                     if dist < monster_dist {
                                         monster_dist = dist;
-                                        monster_index = *m_index;
+                                        monster_index = m_index as usize;
                                     }
                                 }
                             }
                         }
                     }
-
                     // Calculate damage and reward
                     if monster_index < self.monsters.len() {
                         let m_obj = &mut self.monsters[monster_index];
@@ -562,7 +528,6 @@ impl State {
                         } else {
                             m.hp -= tower.power;
                         }
-
                         // Get reward
                         if m.hp == 0 {
                             //insert_into_sorted(&mut termination_monster, t.4);
@@ -581,19 +546,10 @@ impl State {
                         // Reset tower cooldown
                         tower.count = tower.cooldown;
                         obj.object.reward += hit_reward;
-                        //obj.object.store();
                     }
                 } else {
                     tower.count -= 1;
-                    //TODO: do we need to store tower obj here?
                 }
-            }
-        }
-
-        unsafe {
-            let size_end = wasm_trace_size();
-            let delta = size_end - size;
-            zkwasm_rust_sdk::dbg!("loop delta {}\n", delta);
         }
 
         for idx in termination_monster.into_iter().rev() {
@@ -611,7 +567,7 @@ impl State {
             self.spawn(obj);
         }
 
-        //self.events = events;
+        self.events = events;
 
         unsafe {
             let size = wasm_trace_size();

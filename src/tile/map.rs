@@ -51,7 +51,13 @@ impl<C: Coordinate, O: Clone + U64arraySerialize> U64arraySerialize for Position
             object,
         }
     }
+    fn modify_from_u64_array(&mut self, data:&mut IterMut<u64>) {
+        self.id = *(data.next().unwrap());
+        self.position = u64_to_cor(*(data.next().unwrap()));
+        self.object = O::from_u64_array(data);
+    }
 }
+
 
 #[derive(Clone, Serialize)]
 pub struct Map<C: Coordinate> {
