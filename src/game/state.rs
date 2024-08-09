@@ -22,6 +22,7 @@ use crate::tile::map::Map;
 use crate::tile::map::PositionedObject;
 use crate::MERKLE_MAP;
 use core::slice::IterMut;
+use std::collections::LinkedList;
 use serde::Serialize;
 use std::usize;
 use zkwasm_rust_sdk::require;
@@ -30,6 +31,11 @@ extern "C" {
     pub fn wasm_trace_size() -> u64;
 }
 
+/*
+fn wasm_trace_size() -> u64 {
+    0
+}
+*/
 
 
 // The global state
@@ -71,28 +77,45 @@ impl State {
         self.collectors.iter().for_each(|x| x.to_u64_array(&mut data));
         self.towers.iter().for_each(|x| x.to_u64_array(&mut data));
 
-        //zkwasm_rust_sdk::dbg!("stored data: {:?}\n", data);
-        //let splen = self.spawners.len();
-        //zkwasm_rust_sdk::dbg!("spawners: {}\n", splen);
-        //let mlen = self.monsters.len();
-        //zkwasm_rust_sdk::dbg!("monsters: {}\n", mlen);
-        kvpair.set(&[0, 0, 0, 0], &data);
-        let root = kvpair.merkle.root;
-        //zkwasm_rust_sdk::dbg!("after store: {:?}\n", root);
-        //let root = kvpair.merkle.root;
+        let ml = self.monsters.len();
+        let tl = self.towers.len();
+        zkwasm_rust_sdk::dbg!("towers: {}, monsters: {}\n", tl, ml);
+
         unsafe {
             let size = wasm_trace_size();
-            zkwasm_rust_sdk::dbg!("store start is {}\n", size);
+            zkwasm_rust_sdk::dbg!("store before kvpair is {}\n", size);
         }
 
-       //zkwasm_rust_sdk::dbg!("after store: {:?}\n", root);
+        kvpair.set(&[0, 0, 0, 0], &data);
+        unsafe {
+            let size = wasm_trace_size();
+            zkwasm_rust_sdk::dbg!("store end is {}\n", size);
+        }
+
+        //let root = kvpair.merkle.root;
+        //zkwasm_rust_sdk::dbg!("after store: {:?}\n", root);
     }
     pub fn fetch(&mut self) -> bool {
         let kvpair = unsafe { &mut MERKLE_MAP };
+        unsafe {
+            let size = wasm_trace_size();
+            zkwasm_rust_sdk::dbg!("kvpair start is {}\n", size);
+        }
+
         let mut data = kvpair.get(&[0, 0, 0, 0]);
+
+        unsafe {
+            let size = wasm_trace_size();
+            zkwasm_rust_sdk::dbg!("kvpair end is {}\n", size);
+        }
+
         if data.is_empty() {
             false
         } else {
+        unsafe {
+            let size = wasm_trace_size();
+            zkwasm_rust_sdk::dbg!("fetch start is {}\n", size);
+        }
             let mut data = data.iter_mut();
             //zkwasm_rust_sdk::dbg!("stored data: {:?}\n", data);
             self.id_allocator = *data.next().unwrap();
@@ -106,26 +129,54 @@ impl State {
             self.spawners = Vec::with_capacity(spawners_len);
             self.collectors = Vec::with_capacity(collectors_len);
             self.towers = Vec::with_capacity(towers_len);
+        unsafe {
+            let size = wasm_trace_size();
+            zkwasm_rust_sdk::dbg!("fetch mid is {}\n", size);
+        }
             for _ in 0..monsters_len {
                 let obj = PositionedObject::<RectCoordinate, Monster>::from_u64_array(&mut data);
                 self.monsters.push(obj);
             }
+        unsafe {
+            let size = wasm_trace_size();
+            zkwasm_rust_sdk::dbg!("fetch monster is {}\n", size);
+        }
+
             for _ in 0..spawners_len {
                 let obj = PositionedObject::<RectCoordinate, Spawner>::from_u64_array(&mut data);
                 self.map.set_occupy(&obj.position, 1);
                 self.spawners.push(obj);
             }
+        unsafe {
+            let size = wasm_trace_size();
+            zkwasm_rust_sdk::dbg!("fetch sp is {}\n", size);
+        }
+
+
             for _ in 0..collectors_len {
                 let obj = PositionedObject::<RectCoordinate, Collector>::from_u64_array(&mut data);
                 self.map.set_occupy(&obj.position, 1);
                 self.collectors.push(obj);
             }
+        unsafe {
+            let size = wasm_trace_size();
+            zkwasm_rust_sdk::dbg!("fetch col is {}\n", size);
+        }
+
+
             for _ in 0..towers_len {
                 let obj =
                     PositionedObject::<RectCoordinate, InventoryObject>::from_u64_array(&mut data);
                 self.map.set_occupy(&obj.position, 1);
                 self.towers.push(obj);
             }
+
+        unsafe {
+            let size = wasm_trace_size();
+            zkwasm_rust_sdk::dbg!("fetch end is {}\n", size);
+        }
+
+
             true
         }
     }
@@ -320,13 +371,17 @@ pub fn handle_upgrade_inventory(iid: &[u64; 4]) {
 
 fn insert_into_sorted<T: Ord>(vec: &mut Vec<T>, element: T) {
     match vec.binary_search(&element) {
-        Ok(pos) => (),
+        Ok(_) => (),
         Err(pos) => vec.insert(pos, element),
     }
 }
 
 impl State {
     pub fn run(&mut self) {
+        unsafe {
+            let size = wasm_trace_size();
+            zkwasm_rust_sdk::dbg!("start is {}\n", size);
+        }
         self.counter += 1;
 
         let splen = self.spawners.len();
@@ -342,6 +397,11 @@ impl State {
         let mut termination_monster = vec![];
         let mut termination_drop = vec![];
         let mut spawn = vec![];
+
+        unsafe {
+            let size = wasm_trace_size();
+            zkwasm_rust_sdk::dbg!("start loops {}\n", size);
+        }
 
         for (index, obj) in self.monsters.iter_mut().enumerate() {
             //let m = &obj.object;
@@ -391,20 +451,46 @@ impl State {
             // TODO fill object spawner
         }
 
+
+        let size = unsafe { wasm_trace_size() };
+
         let (max_monster_x, max_monster_y) = self.monsters.iter().fold((0, 0), |acc, m| {
             let (mx, my) = m.position.repr();
             (acc.0.max(mx as usize), acc.1.max(my as usize))
         });
 
-        let mut x_position_mark = vec![vec![]; max_monster_x + 1];
-        let mut y_position_mark = vec![vec![]; max_monster_y + 1];
+        let size = unsafe {
+            let size_end = wasm_trace_size();
+            let delta = size_end - size;
+            zkwasm_rust_sdk::dbg!("delta0 {}\n", delta);
+            size_end
+        };
+
+
+        let mut x_position_mark:Vec<LinkedList<usize>> = vec![LinkedList::new(); max_monster_x + 1];
+        let mut y_position_mark:Vec<LinkedList<usize>> = vec![LinkedList::new(); max_monster_y + 1];
+
+        let size = unsafe {
+            let size_end = wasm_trace_size();
+            let delta = size_end - size;
+            zkwasm_rust_sdk::dbg!("delta1 {}\n", delta);
+            size_end
+        };
+
         for (i, m) in self.monsters.iter().enumerate() {
             let (mx, my) = m.position.repr();
-            x_position_mark[mx as usize].push(i);
-            y_position_mark[my as usize].push(i);
+            x_position_mark[mx as usize].push_back(i);
+            y_position_mark[my as usize].push_back(i);
         }
 
-        let mut events = vec![];
+        let size = unsafe {
+            let size_end = wasm_trace_size();
+            let delta = size_end - size;
+            zkwasm_rust_sdk::dbg!("delta2 {}\n", delta);
+            size_end
+        };
+
+        let mut events = Vec::with_capacity(1024);
 
         for obj in self.towers.iter_mut() {
             if let Object::Tower(tower) = &mut obj.object.object {
@@ -495,13 +581,19 @@ impl State {
                         // Reset tower cooldown
                         tower.count = tower.cooldown;
                         obj.object.reward += hit_reward;
-                        obj.object.store();
+                        //obj.object.store();
                     }
                 } else {
                     tower.count -= 1;
                     //TODO: do we need to store tower obj here?
                 }
             }
+        }
+
+        unsafe {
+            let size_end = wasm_trace_size();
+            let delta = size_end - size;
+            zkwasm_rust_sdk::dbg!("loop delta {}\n", delta);
         }
 
         for idx in termination_monster.into_iter().rev() {
@@ -519,6 +611,11 @@ impl State {
             self.spawn(obj);
         }
 
-        self.events = events;
+        //self.events = events;
+
+        unsafe {
+            let size = wasm_trace_size();
+            zkwasm_rust_sdk::dbg!("end is {}\n", size);
+        }
     }
 }

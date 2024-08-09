@@ -8,8 +8,8 @@ let player = new Player(account);
 async function main() {
   //sending_transaction([0n,0n,0n,0n], "1234");
   let map = await player.getMap();
-  for (let x=0n; x<8n; x++) {
-    for (let y=0n; y<8n; y++) {
+  for (let x=0n; x<18n; x++) {
+    for (let y=0n; y<18n; y++) {
       let pos = x + y * BigInt(map.width);
       let towerId = 1038n + y;
       await player.mintTower(towerId);

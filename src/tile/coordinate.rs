@@ -2,7 +2,7 @@ use serde::Serialize;
 pub trait Coordinate: Sized + PartialEq + Serialize {
     type Direction: Clone + Serialize;
     fn adjacents(&self) -> Vec<Self>;
-    fn directions() -> Vec<Self::Direction>;
+    fn directions() -> &'static [Self::Direction];
     fn adjacent(&self, direction: Self::Direction) -> Self;
     fn distance(p1: &Self, p2: &Self) -> u64;
     fn repr(&self) -> (i64, i64);
@@ -62,8 +62,8 @@ impl Coordinate for HexCoordinate {
             self.adjacent(Self::Direction::Left),
         ]
     }
-    fn directions() -> Vec<Self::Direction> {
-        vec![
+    fn directions() -> &'static [Self::Direction] {
+        &[
             Self::Direction::TopLeft,
             Self::Direction::TopRight,
             Self::Direction::Right,
@@ -132,8 +132,8 @@ impl Coordinate for RectCoordinate {
             self.adjacent(Self::Direction::Left),
         ]
     }
-    fn directions() -> Vec<Self::Direction> {
-        vec![
+    fn directions() -> &'static [Self::Direction] {
+        &[
             Self::Direction::Top,
             Self::Direction::Right,
             Self::Direction::Bottom,

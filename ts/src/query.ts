@@ -15,6 +15,7 @@ async function main() {
   console.log(data.global.monsters);
 
   console.log("towers info:");
+  console.log(data.global.towers);
   console.log(data.global.towers.length);
 
   /*

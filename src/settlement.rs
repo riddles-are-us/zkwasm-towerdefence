@@ -1,4 +1,4 @@
-use zkwasm_rest_abi::{WithdrawInfo, MERKLE_MAP};
+use zkwasm_rest_abi::WithdrawInfo;
 use crate::config::GLOBAL;
 pub struct SettlementInfo(Vec<WithdrawInfo>);
 

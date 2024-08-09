@@ -74,8 +74,8 @@ lazy_static::lazy_static! {
     pub static ref CONFIG: Config = Config {
         standard_towers: [
             build_tower(1, RectDirection::Top),
-            build_tower(1, RectDirection::Left),
             build_tower(1, RectDirection::Right),
+            build_tower(1, RectDirection::Left),
             build_tower(1, RectDirection::Bottom)
         ],
     };
