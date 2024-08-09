@@ -13,14 +13,9 @@ async function main() {
   let pos = x + y * BigInt(map.width);
   let towerId = 10038n + pos;
   await player.collectRewardsFromTower(towerId);
+  await player.dropTower(towerId);
   let state:any = await player.getState();
-  let data = JSON.parse(state.data);
-  console.log(`player final state is ${data}`);
-  /*
-  await withdrawRewards("c177d1d314C8FFe1Ea93Ca1e147ea3BE0ee3E470", 223n, nonce);
-  data = JSON.parse(state.data);
-  console.log(`player final state is ${data}`);
-  */
+  console.log(`player final state is ${state}`);
 }
 
 main();

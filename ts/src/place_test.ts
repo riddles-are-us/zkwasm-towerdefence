@@ -7,7 +7,7 @@ async function main() {
   //sending_transaction([0n,0n,0n,0n], "1234");
   let map = await player.getMap();
   let x = 0n;
-  let y = 6n;
+  let y = 7n;
   let pos = x + y * BigInt(map.width);
   let towerId = 10038n + pos;
   //let towerId = 10038n + y;

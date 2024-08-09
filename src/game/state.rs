@@ -23,6 +23,7 @@ use crate::tile::map::Map;
 use crate::tile::map::PositionedObject;
 use crate::MERKLE_MAP;
 use core::slice::IterMut;
+use std::borrow::Borrow;
 use std::collections::LinkedList;
 use serde::Serialize;
 use std::usize;
@@ -326,12 +327,14 @@ pub fn handle_withdraw_tower(nonce: u64, iid: &[u64; 4], pkey: &[u64; 4]) {
 
 pub fn handle_drop_tower(iid: &[u64; 4]) {
     let global = unsafe { &mut crate::config::GLOBAL };
-    //let inventory_obj = InventoryObject::get(iid);
+    let mut inventory_obj = InventoryObject::get(iid).unwrap();
     let pos = global
         .towers
         .iter()
         .position(|x| x.object.object_id == *iid);
     if let Some(index) = pos {
+        inventory_obj.object = global.towers[index].object.object.clone();
+        inventory_obj.store();
         global.remove_tower_at(index);
     }
 }
@@ -339,9 +342,7 @@ pub fn handle_drop_tower(iid: &[u64; 4]) {
 pub fn handle_collect_rewards(player: &mut TDPlayer, iid: &[u64; 4]) {
     //let inventory_obj = InventoryObject::get(iid);
     let mut inventory_obj = InventoryObject::get(iid).unwrap();
-    zkwasm_rust_sdk::dbg!("collect rewards\n");
     let cached_obj = unsafe {GLOBAL.get_placed_inventory(iid[0])};
-    zkwasm_rust_sdk::dbg!("cache obj is: {}\n", {cached_obj.is_none()});
     match cached_obj {
         Some(a) => {
             player.data.reward += a.reward;

@@ -86,7 +86,7 @@ export class Player {
     }
   }
 
-  async dropTower(towerId: bigint, pos: bigint) {
+  async dropTower(towerId: bigint) {
     let nonce = await this.getNonce();
     try {
       let processStamp = await rpc.sendTransaction(
