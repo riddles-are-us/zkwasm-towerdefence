@@ -31,3 +31,7 @@ wasm-opt = false
 rustflags = ["-C", "link-arg=--shared"]
 
 
+#[patch."https://github.com/DelphinusLab/zkWasm-rust.git"]
+#zkwasm-rust-sdk = { path = "/home/xgao/zkWasm-rust" }
+
+

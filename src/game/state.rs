@@ -339,7 +339,9 @@ pub fn handle_drop_tower(iid: &[u64; 4]) {
 pub fn handle_collect_rewards(player: &mut TDPlayer, iid: &[u64; 4]) {
     //let inventory_obj = InventoryObject::get(iid);
     let mut inventory_obj = InventoryObject::get(iid).unwrap();
+    zkwasm_rust_sdk::dbg!("collect rewards\n");
     let cached_obj = unsafe {GLOBAL.get_placed_inventory(iid[0])};
+    zkwasm_rust_sdk::dbg!("cache obj is: {}\n", {cached_obj.is_none()});
     match cached_obj {
         Some(a) => {
             player.data.reward += a.reward;
@@ -482,7 +484,7 @@ impl State {
                             for i in 0..x_position_mark[tx as usize].1 {
                                 let m_index = x_position_mark[tx as usize].0[i];
                                 let (_, my) = self.monsters[m_index as usize].position.repr();
-                                if my < ty {
+                                if ty < my {
                                     let dist = (my - ty) as usize;
                                     if dist < monster_dist {
                                         monster_dist = dist;
@@ -494,9 +496,9 @@ impl State {
                         RectDirection::Right => {
                             for i in 0..y_position_mark[ty as usize].1 {
                                 let m_index = y_position_mark[ty as usize].0[i];
-                                let (_, my) = self.monsters[m_index as usize].position.repr();
-                                if my < ty {
-                                    let dist = (ty - my) as usize;
+                                let (mx, _) = self.monsters[m_index as usize].position.repr();
+                                if tx < mx {
+                                    let dist = (mx - tx) as usize;
                                     if dist < monster_dist {
                                         monster_dist = dist;
                                         monster_index = m_index as usize;

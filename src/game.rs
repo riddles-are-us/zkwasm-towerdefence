@@ -85,9 +85,13 @@ pub fn handle_command(commands: &[u64; 4], pkey: &[u64; 4]) -> Result<(), u32> {
             Ok(())
         },
         CMD_COLLECT_REWARDS => {
+            zkwasm_rust_sdk::dbg!("collect rewards\n");
             let mut player = TDPlayer::get(pkey).unwrap();
+            zkwasm_rust_sdk::dbg!("collect rewards\n");
             player.check_and_inc_nonce(nonce);
+            zkwasm_rust_sdk::dbg!("collect rewards\n");
             let inventory_index = commands[1];
+            zkwasm_rust_sdk::dbg!("collect rewards\n");
             state::handle_collect_rewards(&mut player, &to_full_obj_id(inventory_index));
             player.store();
             Ok(())
