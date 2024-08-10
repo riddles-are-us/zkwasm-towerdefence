@@ -78,8 +78,8 @@ lazy_static::lazy_static! {
         standard_towers: [
             build_tower(1, RectDirection::Top),
             build_tower(1, RectDirection::Right),
+            build_tower(1, RectDirection::Bottom),
             build_tower(1, RectDirection::Left),
-            build_tower(1, RectDirection::Bottom)
         ],
     };
 }

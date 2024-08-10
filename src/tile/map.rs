@@ -85,7 +85,9 @@ impl<C: Coordinate> Map<C> {
     }
 
     pub fn set_feature(&mut self, index: usize, f: Option<C::Direction>) {
-        self.tiles.get_mut(index).unwrap().set_feature(f)
+        let tile = self.tiles.get_mut(index).unwrap();
+        tile.set_feature(f);
+        tile.occupied = 1;
     }
 
     pub fn get_feature(&self, index: usize) -> Option<C::Direction> {

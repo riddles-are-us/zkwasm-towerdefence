@@ -22,6 +22,7 @@ use crate::tile::coordinate::RectDirection;
 use crate::tile::map::Map;
 use crate::tile::map::PositionedObject;
 use crate::MERKLE_MAP;
+use crate::settlement::{SettlementInfo, UpgradeInfo};
 use core::slice::IterMut;
 use std::borrow::Borrow;
 use std::collections::LinkedList;
@@ -341,7 +342,7 @@ pub fn handle_drop_tower(iid: &[u64; 4]) {
 
 pub fn handle_collect_rewards(player: &mut TDPlayer, iid: &[u64; 4]) {
     //let inventory_obj = InventoryObject::get(iid);
-    let mut inventory_obj = InventoryObject::get(iid).unwrap();
+    //let mut inventory_obj = InventoryObject::get(iid).unwrap();
     let cached_obj = unsafe {GLOBAL.get_placed_inventory(iid[0])};
     match cached_obj {
         Some(a) => {
@@ -361,11 +362,16 @@ pub fn handle_upgrade_inventory(player: &mut TDPlayer, iid: &[u64; 4]) {
     //let global = unsafe { &mut crate::config::GLOBAL };
     let mut inventory_obj = InventoryObject::get(iid).unwrap();
     let tower = inventory_obj.object.get_the_tower_mut();
+    let lvl = tower.lvl;
+    zkwasm_rust_sdk::dbg!("check lvl ... {}\n", {tower.lvl} );
     unsafe { require(tower.lvl >= 1 && tower.lvl < 3) };
     let cost = UPGRADE_COST[(tower.lvl-1) as usize];
+    zkwasm_rust_sdk::dbg!("check cost ... {}\n", {cost} );
     unsafe { require(player.data.reward >= cost) };
     player.data.reward -= cost;
+    zkwasm_rust_sdk::dbg!("perform upgrade\n");
     inventory_obj.object.upgrade();
+    SettlementInfo::append_settlement(UpgradeInfo::new(iid[0] as u32, lvl as u16));
     inventory_obj.store();
 }
 
