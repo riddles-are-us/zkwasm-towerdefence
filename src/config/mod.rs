@@ -13,6 +13,7 @@ use crate::tile::coordinate::RectDirection;
 use crate::tile::coordinate::Tile;
 use serde::Serialize;
 
+pub const SERVER_ID:u8 = 0;
 pub const SPWAN_INTERVAL:u64 = 6;
 
 const MONSTER_LEVEL: [[u64; 3]; 3] = [

@@ -58,3 +58,7 @@ export function sign(cmd: Array<bigint>, prikey: string) {
 
 ## State Encoding
 see https://github.com/DelphinusLab/towerdefence-demo/blob/main/src/game/state.rs#L43
+
+## Settlement Encoding
+WITHDRAW: opcode=1 [u8], serverid [u8], reserve[u8], reserve[u8], address[u160], amount[u64]
+UPGRADE: opcode=2 [u8], serverid [u8], size[u8], reserve[u8], [tokenId[u24], level[u8]] * 6

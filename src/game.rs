@@ -5,6 +5,7 @@ use serde::{Serialize, Serializer};
 use zkwasm_rest_abi::WithdrawInfo;
 use zkwasm_rust_sdk::require;
 use crate::settlement::SettlementInfo;
+use crate::config::SERVER_ID;
 
 // Custom serializer for `u64` as a string.
 pub fn bigint_serializer<S>(value: &u64, serializer: S) -> Result<S::Ok, S::Error>
@@ -98,7 +99,8 @@ pub fn handle_command(commands: &[u64; 4], pkey: &[u64; 4]) -> Result<(), u32> {
             let amount = commands[1] & 0xffffffff;
             unsafe {require(player.data.reward >= amount)};
             player.data.reward -= amount;
-            let withdrawinfo = WithdrawInfo::new(&[commands[1], commands[2], commands[3]]);
+            let mut withdrawinfo = WithdrawInfo::new(&[commands[1], commands[2], commands[3]]);
+            withdrawinfo.feature = withdrawinfo.feature + ((SERVER_ID as u32) << 8);
             SettlementInfo::append_settlement(withdrawinfo);
             player.store();
             Ok(())

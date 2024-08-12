@@ -371,7 +371,15 @@ pub fn handle_upgrade_inventory(player: &mut TDPlayer, iid: &[u64; 4]) {
     player.data.reward -= cost;
     zkwasm_rust_sdk::dbg!("perform upgrade\n");
     inventory_obj.object.upgrade();
-    SettlementInfo::append_settlement(UpgradeInfo::new(iid[0] as u32, lvl as u16));
+    let cached_obj = unsafe {GLOBAL.get_placed_inventory(iid[0])};
+    match cached_obj {
+        Some(a) => {
+            a.object = inventory_obj.object.clone();
+        },
+        None => {
+        }
+    }
+    UpgradeInfo::append(iid[0] as u32, lvl as u8);
     inventory_obj.store();
 }
 
