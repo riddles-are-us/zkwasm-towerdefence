@@ -33,6 +33,7 @@ const CMD_DROP_TOWER: u64 = 4;
 const CMD_UPGRADE_TOWER: u64 = 5;
 const CMD_COLLECT_REWARDS: u64 = 6;
 const CMD_WITHDRAW_REWARDS: u64 = 7;
+const CMD_DEPOSIT: u64 = 8;
 
 /// Step function receives a encoded command and changes the global state accordingly
 pub fn handle_command(commands: &[u64; 4], pkey: &[u64; 4]) -> Result<(), u32> {
@@ -104,6 +105,23 @@ pub fn handle_command(commands: &[u64; 4], pkey: &[u64; 4]) -> Result<(), u32> {
             SettlementInfo::append_settlement(withdrawinfo);
             player.store();
             Ok(())
+        },
+        CMD_DEPOSIT => {
+            let mut admin = TDPlayer::get(pkey).unwrap();
+            admin.check_and_inc_nonce(nonce);
+            let mut player = TDPlayer::get_from_pid(&[commands[1], commands[2]]);
+            match player.as_mut() {
+                None => {
+                    let mut player = TDPlayer::new_from_pid([commands[1], commands[2]]);
+                    player.data.reward += commands[3];
+                    player.store();
+                },
+                Some(player) => {
+                    player.data.reward += commands[3];
+                    player.store();
+                }
+            }
+            Ok(()) // no error occurred
         },
         _ => {
             Ok(())
