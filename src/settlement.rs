@@ -23,13 +23,16 @@ impl UpgradeInfo {
 
 impl FlushBytes for UpgradeInfo {
     fn flush(&self, bytes: &mut Vec<u8>) {
-        self.info.chunks(4).for_each(|x| {
+        self.info.chunks(7).for_each(|x| {
             let mut opcode = unsafe {UPGRADE_OPCODE.clone()};
             opcode[2] = x.len() as u8;
             opcode[1] = SERVER_ID;
             bytes.extend_from_slice(&opcode);
             for xi in x {
                 bytes.extend_from_slice(&xi.to_be_bytes());
+            };
+            for _ in x.len()..7 {
+                bytes.extend_from_slice(&[0,0,0,0]);
             }
         });
     }

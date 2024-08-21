@@ -25,7 +25,6 @@ use crate::MERKLE_MAP;
 use crate::settlement::{SettlementInfo, UpgradeInfo};
 use core::slice::IterMut;
 use std::borrow::Borrow;
-use std::collections::LinkedList;
 use serde::Serialize;
 use std::usize;
 use zkwasm_rust_sdk::require;

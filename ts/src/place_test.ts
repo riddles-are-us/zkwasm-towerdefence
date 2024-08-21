@@ -1,5 +1,4 @@
 //import initHostBind, * as hostbind from "./wasmbind/hostbind.js";
-import { query, ZKWasmAppRpc, LeHexBN } from "zkwasm-ts-server";
 import { Player } from "./api.js";
 let account = "1234";
 let player = new Player(account);
@@ -13,6 +12,9 @@ async function main() {
   //let towerId = 10038n + y;
   await player.mintTower(towerId);
   await player.placeTower(towerId, pos, 1n);
+  await player.deposit(15000n);
+  await player.upgradeTower(towerId);
+  await player.upgradeTower(towerId);
   //await player.dropTower(towerId, pos);
 }
 
