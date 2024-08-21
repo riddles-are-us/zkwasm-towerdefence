@@ -12,6 +12,7 @@ const CMD_DROP_TOWER = 4n;
 const CMD_UPGRADE_TOWER = 5n;
 const CMD_COLLECT_REWARDS = 6n;
 const CMD_WITHDRAW_REWARDS = 7n;
+const CMD_DEPOSIT = 8n;
 
 function createCommand(nonce: bigint, command: bigint, feature: bigint) {
   return (nonce << 16n) + (feature << 8n) + command;
@@ -22,14 +23,32 @@ interface MapSize {
   height: number,
 }
 
-//const rpc = new ZKWasmAppRpc("http://localhost:3000");
-const rpc = new ZKWasmAppRpc("http://114.119.187.224:8085");
+const rpc = new ZKWasmAppRpc("http://localhost:3000");
+//const rpc = new ZKWasmAppRpc("http://114.119.187.224:8085");
 
 export class Player {
   processingKey: string;
   constructor(key: string) {
     this.processingKey = key
   }
+
+  async deposit(balance: bigint) {
+    let nonce = await this.getNonce();
+    let accountInfo = new LeHexBN(query(this.processingKey).pkx).toU64Array();
+    try {
+      let finished = await rpc.sendTransaction(
+        [createCommand(nonce, CMD_DEPOSIT, 0n), accountInfo[1], accountInfo[2], balance],
+        this.processingKey
+      );
+      console.log("deposit processed at:", finished);
+    } catch(e) {
+      if(e instanceof Error) {
+        console.log(e.message);
+      }
+      console.log("deposit error at processing key:", this.processingKey);
+    }
+  }
+
   async getMap(): Promise<MapSize> {
     let state:any = await rpc.queryState(this.processingKey);
     let map = JSON.parse(state.data).global.map;
@@ -102,7 +121,8 @@ export class Player {
     }
   }
 
-  async upgradeTower(towerId: bigint, pos: bigint, nonce: bigint) {
+  async upgradeTower(towerId: bigint) {
+    let nonce = await this.getNonce();
     try {
       let processStamp = await rpc.sendTransaction(
         [createCommand(nonce, CMD_UPGRADE_TOWER, 0n), towerId, 0n, 0n],
